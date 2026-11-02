@@ -3,7 +3,7 @@
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-$Repo    = 'evanb/mcinit'
+$Repo    = 'evnbnet/mcinit'
 $Root    = Join-Path $env:LOCALAPPDATA 'mcinit'
 $BinDir  = Join-Path $Root 'bin'
 
