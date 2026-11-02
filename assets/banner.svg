@@ -29,10 +29,7 @@
   <g transform="translate(90,78)">
     <rect x="0" y="0" width="260" height="164" rx="14" fill="#161b22" stroke="#30363d" stroke-width="2"/>
     <rect x="0" y="0" width="260" height="34" rx="14" fill="#21262d"/>
-    <circle cx="22" cy="17" r="6" fill="#ff5f56"/>
-    <circle cx="44" cy="17" r="6" fill="#ffbd2e"/>
-    <circle cx="66" cy="17" r="6" fill="#27c93f"/>
-    <text x="18" y="74" font-family="Consolas, 'Courier New', monospace" font-size="22" fill="#7ee787">$ mcinit new my-server</text>
+    <text x="18" y="74" font-family="Consolas, 'Courier New', monospace" font-size="22" fill="#7ee787">mcinit new my-server</text>
     <text x="18" y="108" font-family="Consolas, 'Courier New', monospace" font-size="16" fill="#8b949e">creating server...</text>
     <text x="18" y="138" font-family="Consolas, 'Courier New', monospace" font-size="16" fill="#58a6ff">done ✓</text>
   </g>
