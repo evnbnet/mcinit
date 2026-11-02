@@ -1,0 +1,64 @@
+version: 2
+
+project_name: mcinit
+
+before:
+  hooks:
+    - go mod tidy
+    # -short skips the live API checks; a release build must not fail because
+    # PaperMC is having a bad afternoon.
+    - go test -short ./...
+
+builds:
+  - id: mcinit
+    main: .
+    binary: mcinit
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X github.com/evanb/mcinit/internal/buildinfo.Version={{ .Version }}
+
+archives:
+  - id: mcinit
+    formats: [zip]
+    # install.ps1 looks the archive up by this exact name.
+    name_template: "mcinit_{{ .Version }}_windows_{{ .Arch }}"
+    files:
+      - README.md
+      - LICENSE*
+
+checksum:
+  name_template: "checksums.txt"
+  algorithm: sha256
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
+
+release:
+  draft: false
+  prerelease: auto
+  name_template: "mcinit {{ .Tag }}"
+  footer: |
+    ## Install
+
+    ```powershell
+    irm https://github.com/evanb/mcinit/releases/latest/download/install.ps1 | iex
+    ```
+
+    Then open a new terminal so that `mcinit` is on the PATH.
+  extra_files:
+    - glob: install.ps1

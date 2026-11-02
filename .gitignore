@@ -1,0 +1,21 @@
+# Binaries / build output
+/mcinit
+/mcinit.exe
+/dist/
+*.exe
+
+# Generated test servers and runtime artifacts
+/Testing/
+/backups/
+*.jar
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Go test cache / coverage (if generated locally)
+*.test
+*.out
+coverage.*
