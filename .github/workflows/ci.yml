@@ -16,7 +16,9 @@ jobs:
           go-version: stable
           cache: true
 
-      - run: gofmt -l . && if ($(gofmt -l .)) { exit 1 }
+      - run: |
+          $files = gofmt -l .
+          if ($files) { $files; exit 1 }
         shell: pwsh
         name: gofmt
 
