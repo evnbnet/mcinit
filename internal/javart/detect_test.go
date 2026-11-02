@@ -6,8 +6,7 @@ import (
 )
 
 func TestParseVersion(t *testing.T) {
-	// Real `java -version` output, which goes to stderr. Each block is what a
-	// different vendor and generation actually prints.
+
 	tests := []struct {
 		name      string
 		output    string
@@ -87,8 +86,6 @@ func TestParseVersionRejectsGarbage(t *testing.T) {
 	}
 }
 
-// TestDetectOnThisMachine is informational: it reports what mcinit sees here.
-// It does not assert a specific version, because that depends on the machine.
 func TestDetectOnThisMachine(t *testing.T) {
 	all := candidates()
 	t.Logf("%d java candidate(s) found", len(all))
@@ -100,16 +97,13 @@ func TestDetectOnThisMachine(t *testing.T) {
 		}
 	}
 
-	// Whatever is installed, asking for an impossible version must fail
-	// rather than hand back something too old.
 	if rt, ok := Detect(999); ok {
 		t.Errorf("Detect(999) returned %s; nothing should satisfy that", rt)
 	}
 }
 
 func TestDetectPicksClosestMatch(t *testing.T) {
-	// Detect's contract: with 21 and 25 installed and 21 required, it must
-	// choose 21. Verified against whatever this machine has.
+
 	if _, ok := Detect(8); !ok {
 		t.Skip("no Java installed here; nothing to compare")
 	}
@@ -122,15 +116,12 @@ func TestDetectPicksClosestMatch(t *testing.T) {
 }
 
 func TestAdoptiumArch(t *testing.T) {
-	// Adoptium's names differ from Go's; a wrong mapping yields an empty asset
-	// list and a confusing "no installer published" error.
+
 	if got := adoptiumArch(); got != "x64" && got != "aarch64" && got != "x86" {
 		t.Errorf("adoptiumArch() = %q, want one of x64/aarch64/x86", got)
 	}
 }
 
-// TestFindInstallerLive checks that Adoptium still publishes a verifiable
-// Windows installer for the Java versions mcinit may need to install.
 func TestFindInstallerLive(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping live Adoptium check in -short mode")

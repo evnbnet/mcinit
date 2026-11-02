@@ -1,5 +1,3 @@
-// Package server turns a resolved plan into a working server directory: the
-// verified jar plus the three files Minecraft needs to start.
 package server
 
 import (
@@ -14,25 +12,19 @@ import (
 	"github.com/evanb/mcinit/internal/provider"
 )
 
-// Plan is everything needed to create the server, with every choice already
-// resolved: a concrete version, a concrete build, a concrete java.exe.
 type Plan struct {
 	Config   config.Config
-	Dir      string // absolute
+	Dir      string
 	Artifact provider.Artifact
 	Java     javart.Runtime
 }
 
-// Result reports what was created, for the closing summary.
 type Result struct {
 	Dir       string
 	JarPath   string
 	StartPath string
 }
 
-// CheckTarget rejects a destination before any work is done. An existing,
-// non-empty directory is never written into: it could hold a world, and
-// overwriting someone's save is not recoverable.
 func CheckTarget(dir string) error {
 	entries, err := os.ReadDir(dir)
 	if os.IsNotExist(err) {
@@ -47,13 +39,9 @@ func CheckTarget(dir string) error {
 	return nil
 }
 
-// Create downloads the jar and writes the generated files. If anything fails,
-// a directory that Create itself created is removed again; a directory that
-// already existed is left alone.
 func Create(ctx context.Context, plan Plan) (result Result, err error) {
 	if !plan.Config.AcceptedEULA {
-		// Defence in depth: the caller asks for consent, but nothing here
-		// should ever be able to write eula=true without it.
+
 		return Result{}, fmt.Errorf("the Minecraft EULA was not accepted")
 	}
 

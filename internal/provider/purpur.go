@@ -15,7 +15,6 @@ type purpur struct{}
 
 func (purpur) Software() config.Software { return config.Purpur }
 
-// purpurVersions mirrors GET /v2/purpur.
 type purpurVersions struct {
 	Versions []string `json:"versions"`
 }
@@ -28,8 +27,6 @@ func (p purpur) Versions(ctx context.Context) ([]mcver.Version, error) {
 	return sortNewestFirst(body.Versions), nil
 }
 
-// purpurBuild mirrors GET /v2/purpur/{v}/latest. Note Build is a string and
-// the only digest published is MD5 — there is no sha256 field to fall back on.
 type purpurBuild struct {
 	Version string `json:"version"`
 	Build   string `json:"build"`
@@ -52,8 +49,6 @@ func (p purpur) Resolve(ctx context.Context, version string) (Artifact, error) {
 		return Artifact{}, fmt.Errorf("Purpur %s returned a build with no number or no checksum", version)
 	}
 
-	// Purpur has no download URL in the metadata; it is assembled from the
-	// version and build number.
 	return Artifact{
 		Filename: fmt.Sprintf("purpur-%s-%s.jar", version, build.Build),
 		URL:      fmt.Sprintf("%s/%s/%s/download", purpurAPI, version, build.Build),

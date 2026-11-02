@@ -49,8 +49,7 @@ func TestAikarFlagsSmallHeap(t *testing.T) {
 }
 
 func TestAikarFlagsLargeHeap(t *testing.T) {
-	// Aikar's tuning changes at 12 GB; picking the wrong side is a silent
-	// performance regression, which is exactly why this is tested.
+
 	d := testData(16, 25)
 	if d.G1NewSizePercent != 40 || d.G1MaxNewSizePercent != 50 {
 		t.Errorf("new size = %d/%d, want 40/50 for a 16 GB heap", d.G1NewSizePercent, d.G1MaxNewSizePercent)
@@ -73,8 +72,7 @@ func TestAikarFlagsBoundaryIsTwelve(t *testing.T) {
 }
 
 func TestVectorModuleGatedByJavaVersion(t *testing.T) {
-	// --add-modules=jdk.incubator.vector does not exist before Java 9; passing
-	// it to a Java 8 runtime makes the server refuse to start.
+
 	if testData(4, 8).VectorModule {
 		t.Error("Java 8 must not get --add-modules=jdk.incubator.vector")
 	}
@@ -95,8 +93,6 @@ func TestStartBatContents(t *testing.T) {
 	}
 	bat := string(raw)
 
-	// The absolute java path is the whole point: a freshly installed JRE is
-	// not on the PATH of an already-running shell.
 	if !strings.Contains(bat, `set "JAVA=C:\Program Files\Eclipse Adoptium\jre-25\bin\java.exe"`) {
 		t.Error("start.bat does not embed the absolute java path")
 	}
@@ -111,7 +107,7 @@ func TestStartBatContents(t *testing.T) {
 			t.Errorf("start.bat is missing %q", want)
 		}
 	}
-	// Batch files get CRLF.
+
 	if strings.Contains(strings.ReplaceAll(bat, "\r\n", ""), "\n") {
 		t.Error("start.bat contains bare LF line endings")
 	}
@@ -149,10 +145,7 @@ func TestEulaAndPropertiesContents(t *testing.T) {
 }
 
 func TestEscapeProperty(t *testing.T) {
-	// The expectations are built from constants rather than written as literal
-	// backslashes: a `\\` typed inline here is easy to mangle, and when the
-	// same mangling hits both the function and its test the test silently
-	// stops asserting anything.
+
 	const bs = `\`
 	tests := []struct{ in, want string }{
 		{"normal motd", "normal motd"},
@@ -168,8 +161,6 @@ func TestEscapeProperty(t *testing.T) {
 	}
 }
 
-// TestPropertyRoundTrip is the guarantee that actually matters: whatever goes
-// into server.properties must come back out unchanged when mcinit reads it.
 func TestPropertyRoundTrip(t *testing.T) {
 	const bs = `\`
 	for _, original := range []string{
@@ -188,19 +179,16 @@ func TestPropertyRoundTrip(t *testing.T) {
 func TestCheckTarget(t *testing.T) {
 	base := t.TempDir()
 
-	// Missing is fine.
 	if err := CheckTarget(filepath.Join(base, "nope")); err != nil {
 		t.Errorf("missing dir rejected: %v", err)
 	}
 
-	// Existing but empty is fine.
 	empty := filepath.Join(base, "empty")
 	os.Mkdir(empty, 0o755)
 	if err := CheckTarget(empty); err != nil {
 		t.Errorf("empty dir rejected: %v", err)
 	}
 
-	// Existing with contents must be refused — it could hold a world.
 	full := filepath.Join(base, "full")
 	os.Mkdir(full, 0o755)
 	os.WriteFile(filepath.Join(full, "level.dat"), []byte("x"), 0o644)

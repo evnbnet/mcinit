@@ -1,7 +1,3 @@
-// Package download fetches a file, verifies it against a published digest and
-// only then puts it in place. Nothing half-downloaded ever reaches the final
-// path, so a dropped connection cannot leave behind a jar that looks installed
-// but is truncated.
 package download
 
 import (
@@ -21,39 +17,26 @@ import (
 	"github.com/evanb/mcinit/internal/ui"
 )
 
-// Supported digest algorithms. Paper and Adoptium publish SHA-256; Purpur
-// publishes MD5 and nothing else.
 const (
 	AlgoSHA256 = "sha256"
 	AlgoMD5    = "md5"
 )
 
-// partSuffix names the in-progress file. It sits next to the destination so the
-// final step is a rename on the same volume, which is atomic.
 const partSuffix = ".part"
 
-// Request describes one file to fetch.
 type Request struct {
 	URL  string
-	Dest string // final absolute path
-	Size int64  // expected bytes; 0 falls back to Content-Length
+	Dest string
+	Size int64
 
-	// Algo and Checksum come from the provider's API. Both must be set:
-	// an unverified download is not worth the risk of a corrupted install.
 	Algo     string
 	Checksum string
 
-	// Label is what the progress bar shows. Defaults to the destination's
-	// base name.
 	Label string
 }
 
-// client has no overall timeout — a large jar on a slow line is normal. The
-// context passed to Fetch is what cancels it.
 var client = &http.Client{}
 
-// Fetch downloads, verifies and installs the file. On any failure the partial
-// download is removed and the destination is left untouched.
 func Fetch(ctx context.Context, req Request) error {
 	hasher, err := hasherFor(req.Algo)
 	if err != nil {
@@ -87,7 +70,7 @@ func Fetch(ctx context.Context, req Request) error {
 	if err != nil {
 		return err
 	}
-	// Any early return below must not leave the partial file behind.
+
 	installed := false
 	defer func() {
 		if !installed {
@@ -116,7 +99,7 @@ func Fetch(ctx context.Context, req Request) error {
 	if err := file.Close(); err != nil {
 		return err
 	}
-	// Windows will not rename onto an existing file.
+
 	os.Remove(req.Dest)
 	if err := os.Rename(part, req.Dest); err != nil {
 		return err
@@ -149,8 +132,7 @@ func hasherFor(algo string) (hash.Hash, error) {
 	case AlgoSHA256:
 		return sha256.New(), nil
 	case AlgoMD5:
-		// Weak against deliberate collisions, but it is the only digest
-		// Purpur publishes, and here it does its job: catching corruption.
+
 		return md5.New(), nil
 	}
 	return nil, fmt.Errorf("unsupported checksum algorithm %q", algo)

@@ -15,19 +15,16 @@ import (
 	"github.com/evanb/mcinit/internal/ui"
 )
 
-// Archive is one backup found on disk.
 type Archive struct {
 	Path     string
-	Name     string // file name without the extension
+	Name     string
 	Size     int64
 	Created  time.Time
 	Manifest Manifest
-	// HasManifest is false for a zip written by an older mcinit or by hand;
-	// such a backup is still listed, just with less detail.
+
 	HasManifest bool
 }
 
-// Label is what the restore picker shows for this backup.
 func (a Archive) Label() string {
 	stamp := a.Created.Format("2006-01-02 15:04")
 	label := fmt.Sprintf("%s   %s", stamp, HumanSize(a.Size))
@@ -37,7 +34,6 @@ func (a Archive) Label() string {
 	return label
 }
 
-// List returns the backups of a server, newest first.
 func List(info server.Info) ([]Archive, error) {
 	dir := filepath.Join(info.Dir, BackupsDir)
 	files, err := os.ReadDir(dir)
@@ -65,8 +61,7 @@ func List(info server.Info) ([]Archive, error) {
 			Size:    st.Size(),
 			Created: st.ModTime(),
 		}
-		// Prefer what the backup says about itself over the file's timestamp,
-		// which changes if the file is copied around.
+
 		if m, err := readManifest(path); err == nil {
 			archive.Manifest = m
 			archive.HasManifest = true
@@ -109,13 +104,6 @@ func readManifest(path string) (Manifest, error) {
 	return Manifest{}, fmt.Errorf("%s has no manifest", filepath.Base(path))
 }
 
-// Restore replaces the server's worlds and configuration with the contents of
-// an archive.
-//
-// The current state is saved first, so restoring the wrong backup is always
-// recoverable. The archive is then unpacked to a temporary directory and only
-// swapped in once it has been read end to end — a corrupt zip is discovered
-// before anything on disk has been touched.
 func Restore(info server.Info, archive Archive) (safety Result, err error) {
 	if running, why := info.IsRunning(); running {
 		return Result{}, fmt.Errorf("the server is running (%s); stop it before restoring", why)
@@ -140,7 +128,6 @@ func Restore(info server.Info, archive Archive) (safety Result, err error) {
 		return safety, fmt.Errorf("%s is empty", filepath.Base(archive.Path))
 	}
 
-	// Everything is unpacked and verified; now replace.
 	err = ui.Spin("Replacing worlds and configuration", func() error {
 		for _, name := range roots {
 			target := filepath.Join(info.Dir, name)
@@ -156,8 +143,6 @@ func Restore(info server.Info, archive Archive) (safety Result, err error) {
 	return safety, err
 }
 
-// extract unpacks an archive into staging and returns the top-level names it
-// contains, which are what Restore swaps into place.
 func extract(archivePath, staging string) ([]string, error) {
 	zr, err := zip.OpenReader(archivePath)
 	if err != nil {
@@ -227,12 +212,6 @@ func writeEntry(f *zip.File, dest string, bar io.Writer) error {
 	return out.Close()
 }
 
-// safeJoin resolves a zip entry name against the destination directory and
-// refuses anything that would escape it.
-//
-// A zip is a file people copy around and share, and a crafted entry named
-// "../../evil" would otherwise let an archive write anywhere on the machine.
-// This is the "zip slip" class of bug.
 func safeJoin(base, name string) (string, error) {
 	cleaned := filepath.Clean(filepath.FromSlash(name))
 	if filepath.IsAbs(cleaned) || strings.HasPrefix(cleaned, string(filepath.Separator)) {
@@ -241,8 +220,7 @@ func safeJoin(base, name string) (string, error) {
 	if cleaned == ".." || strings.HasPrefix(cleaned, ".."+string(filepath.Separator)) {
 		return "", fmt.Errorf("the backup tries to write outside the server folder (%s); refusing to unpack it", name)
 	}
-	// Volume names such as "C:" are absolute in intent even when Clean does
-	// not mark them so.
+
 	if filepath.VolumeName(cleaned) != "" {
 		return "", fmt.Errorf("the backup contains a drive-qualified path (%s); refusing to unpack it", name)
 	}

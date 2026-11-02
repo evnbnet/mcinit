@@ -18,8 +18,6 @@ func readFile(t *testing.T, parts ...string) string {
 	return string(body)
 }
 
-// TestRestoreRoundTrip is the guarantee the whole feature exists for: what goes
-// into a backup comes back out unchanged.
 func TestRestoreRoundTrip(t *testing.T) {
 	info := fakeServer(t)
 
@@ -27,7 +25,6 @@ func TestRestoreRoundTrip(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Wreck the world the way a bad command or a broken plugin would.
 	if err := os.WriteFile(filepath.Join(info.Dir, "world", "level.dat"), []byte("RUINED"), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -70,7 +67,6 @@ func TestRestoreLeavesASafetyCopy(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// The state that is about to be replaced must survive somewhere.
 	os.WriteFile(filepath.Join(info.Dir, "world", "level.dat"), []byte("THE CURRENT WORLD"), 0o644)
 
 	archives, _ := List(info)
@@ -87,7 +83,6 @@ func TestRestoreLeavesASafetyCopy(t *testing.T) {
 		t.Errorf("the safety copy holds %q, not the state that was replaced", got)
 	}
 
-	// And it has to show up in the listing, or it is not a way back.
 	after, _ := List(info)
 	found := false
 	for _, a := range after {
@@ -101,8 +96,7 @@ func TestRestoreLeavesASafetyCopy(t *testing.T) {
 }
 
 func TestRestoreDoesNotRestoreTheServerJar(t *testing.T) {
-	// The jar was never backed up, so a restore must leave the installed one
-	// alone rather than deleting it.
+
 	info := fakeServer(t)
 	Create(info, ReasonManual)
 
@@ -115,7 +109,6 @@ func TestRestoreDoesNotRestoreTheServerJar(t *testing.T) {
 	}
 }
 
-// writeHostileZip builds an archive containing one crafted entry name.
 func writeHostileZip(t *testing.T, dir, entryName string) string {
 	t.Helper()
 	path := filepath.Join(dir, "hostile.zip")
@@ -137,9 +130,6 @@ func writeHostileZip(t *testing.T, dir, entryName string) string {
 	return path
 }
 
-// TestRestoreRefusesZipSlip covers the class of bug where an archive entry
-// named "../../something" writes outside the directory being unpacked into.
-// Backups are files people copy and share, so the contents are not trusted.
 func TestRestoreRefusesZipSlip(t *testing.T) {
 	hostile := []string{
 		"../escaped.txt",
@@ -158,7 +148,7 @@ func TestRestoreRefusesZipSlip(t *testing.T) {
 			if _, err := extract(path, staging); err == nil {
 				t.Fatalf("extract accepted the entry %q", name)
 			}
-			// And nothing escaped while it was finding out.
+
 			outside := filepath.Join(filepath.Dir(staging), "escaped.txt")
 			if _, err := os.Stat(outside); err == nil {
 				t.Errorf("%q wrote outside the staging directory", name)
@@ -187,14 +177,11 @@ func TestSafeJoinAcceptsOrdinaryNames(t *testing.T) {
 }
 
 func TestRestoreRefusesWhileRunning(t *testing.T) {
-	// There is no safe way to replace a world that Minecraft has open, so this
-	// has no --force escape hatch.
+
 	info := fakeServer(t)
 	Create(info, ReasonManual)
 	archives, _ := List(info)
 
-	// Point the server at a port we actually occupy, which is what IsRunning
-	// falls back to when it cannot read a lock.
 	listener, addr := listenSomewhere(t)
 	defer listener.Close()
 	info.Port = addr
@@ -206,8 +193,6 @@ func TestRestoreRefusesWhileRunning(t *testing.T) {
 	}
 }
 
-// listenSomewhere opens a listener on a free local port and returns it with
-// the port number, so a test can make IsRunning's port check fire.
 func listenSomewhere(t *testing.T) (net.Listener, int) {
 	t.Helper()
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
@@ -217,10 +202,6 @@ func listenSomewhere(t *testing.T) (net.Listener, int) {
 	return listener, listener.Addr().(*net.TCPAddr).Port
 }
 
-// TestRestorePreservesEmptyDirectories came from a real restore that silently
-// dropped world/playerdata and world/data because they happened to be empty.
-// A zip built only from file paths cannot describe an empty directory, so the
-// directories have to be recorded explicitly.
 func TestRestorePreservesEmptyDirectories(t *testing.T) {
 	info := fakeServer(t)
 
@@ -238,7 +219,7 @@ func TestRestorePreservesEmptyDirectories(t *testing.T) {
 	if _, err := Create(info, ReasonManual); err != nil {
 		t.Fatal(err)
 	}
-	// Wipe the world the way a restore does before putting the backup back.
+
 	if err := os.RemoveAll(filepath.Join(info.Dir, "world")); err != nil {
 		t.Fatal(err)
 	}

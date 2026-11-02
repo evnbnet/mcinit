@@ -15,11 +15,8 @@ import (
 	"github.com/evanb/mcinit/templates"
 )
 
-// largeHeapGB is where Aikar's flags switch to the tuning for big heaps.
 const largeHeapGB = 12
 
-// templateData is everything the templates can reference. It is deliberately
-// flat: the templates stay readable and the values are computed once, here.
 type templateData struct {
 	McinitVersion string
 	Generated     string
@@ -34,11 +31,9 @@ type templateData struct {
 	JavaMajor int
 
 	RAM int
-	// VectorModule gates --add-modules=jdk.incubator.vector, which does not
-	// exist before Java 9 and would make the server refuse to start.
+
 	VectorModule bool
 
-	// Aikar's G1 tuning, which differs above and below a 12 GB heap.
 	G1NewSizePercent               int
 	G1MaxNewSizePercent            int
 	G1HeapRegionSize               string
@@ -90,9 +85,6 @@ func newTemplateData(cfg config.Config, art provider.Artifact, javaPath string, 
 	return d
 }
 
-// escapeProperty makes a value safe for the Java properties format that
-// server.properties uses: a stray backslash would otherwise be read as an
-// escape sequence, and a newline would split the entry in two.
 func escapeProperty(s string) string {
 	s = strings.ReplaceAll(s, backslash, doubleBackslash)
 	s = strings.ReplaceAll(s, "\r", "")
@@ -100,8 +92,6 @@ func escapeProperty(s string) string {
 	return s
 }
 
-// generated maps each template to the file it becomes, and records which ones
-// need Windows line endings.
 var generated = []struct {
 	template string
 	output   string
@@ -109,12 +99,10 @@ var generated = []struct {
 }{
 	{"eula.txt.tmpl", "eula.txt", false},
 	{"server.properties.tmpl", "server.properties", false},
-	// cmd.exe tolerates LF, but a batch file with mixed endings has bitten
-	// enough people that it is not worth the risk.
+
 	{"start.bat.tmpl", "start.bat", true},
 }
 
-// renderAll writes every generated file into dir.
 func renderAll(dir string, data templateData) error {
 	for _, g := range generated {
 		body, err := render(g.template, data)

@@ -22,9 +22,6 @@ jobs:
 
       - run: go vet ./...
 
-      # -short skips the checks that call the real PaperMC, Purpur and Adoptium
-      # APIs, so a CI run never fails because an upstream service is down. The
-      # live checks are meant to be run locally before a release.
       - run: go test -short ./...
 
       - run: go build ./...

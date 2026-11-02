@@ -1,4 +1,3 @@
-// Command mcinit creates a ready-to-run Minecraft server on localhost.
 package main
 
 import (

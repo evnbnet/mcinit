@@ -1,6 +1,3 @@
-// Package config holds the settings that describe a server to create. It is
-// filled either by the interactive wizard or by command-line flags, and is the
-// only thing the creation step needs.
 package config
 
 import (
@@ -11,7 +8,6 @@ import (
 	"github.com/evanb/mcinit/internal/mcver"
 )
 
-// Software identifies a server distribution.
 type Software string
 
 const (
@@ -19,7 +15,6 @@ const (
 	Purpur Software = "purpur"
 )
 
-// Display returns the name as it is written in the project's own branding.
 func (s Software) Display() string {
 	switch s {
 	case Paper:
@@ -30,7 +25,6 @@ func (s Software) Display() string {
 	return string(s)
 }
 
-// ParseSoftware accepts the flag spelling of a distribution.
 func ParseSoftware(s string) (Software, error) {
 	switch Software(strings.ToLower(strings.TrimSpace(s))) {
 	case Paper:
@@ -41,32 +35,22 @@ func ParseSoftware(s string) (Software, error) {
 	return "", fmt.Errorf("unknown server software %q (use paper or purpur)", s)
 }
 
-// Latest asks the provider for its newest stable version instead of naming one.
 const Latest = "latest"
 
-// RAM bounds. The floor is what a vanilla world needs to not thrash; the
-// ceiling only guards against typos like --ram 400.
 const (
 	MinRAM = 1
 	MaxRAM = 256
 )
 
-// Config fully describes the server to create.
 type Config struct {
-	Name     string   // project name, used for the default directory and MOTD
-	Software Software //
-	Version  string   // Minecraft version, or Latest before resolution
-	RAM      int      // heap size in gigabytes
-	Dir      string   // target directory
+	Name     string
+	Software Software
+	Version  string
+	RAM      int
+	Dir      string
 
-	// AcceptedEULA records an explicit yes. eula.txt is only written when this
-	// is true; there is no path that accepts Mojang's terms on the user's
-	// behalf.
 	AcceptedEULA bool
 
-	// Defaults baked into server.properties. The wizard does not ask for
-	// these; they exist so the template has one source of truth and the final
-	// summary can show what was chosen.
 	MOTD       string
 	Gamemode   string
 	Difficulty string
@@ -75,7 +59,6 @@ type Config struct {
 	OnlineMode bool
 }
 
-// Default returns a Config with everything but the user's choices filled in.
 func Default() Config {
 	return Config{
 		Version:    Latest,
@@ -89,8 +72,6 @@ func Default() Config {
 	}
 }
 
-// Validate reports the first problem that would make creation fail, phrased for
-// the user rather than for a log.
 func (c Config) Validate() error {
 	if c.Name == "" {
 		return fmt.Errorf("the server needs a name")
@@ -118,5 +99,4 @@ func (c Config) Validate() error {
 	return nil
 }
 
-// AbsDir resolves Dir against the working directory.
 func (c Config) AbsDir() (string, error) { return filepath.Abs(c.Dir) }

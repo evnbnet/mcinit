@@ -73,7 +73,6 @@ func runNew(cmd *cobra.Command, name string, opts newOptions) error {
 		return err
 	}
 
-	// 1. Ask for whatever the flags left open.
 	if !opts.yes {
 		cfg, err = wizard.Run(ctx, cfg, provided)
 		if err != nil {
@@ -90,7 +89,6 @@ func runNew(cmd *cobra.Command, name string, opts newOptions) error {
 		return userError(err, "")
 	}
 
-	// 2. Refuse a destination that already holds something, before any work.
 	dir, err := cfg.AbsDir()
 	if err != nil {
 		return userError(err, "")
@@ -99,12 +97,10 @@ func runNew(cmd *cobra.Command, name string, opts newOptions) error {
 		return userError(err, "Pick another name, or pass --dir with an empty folder.")
 	}
 
-	// 3. Mojang terms, explicitly, before anything is downloaded.
 	if err := ensureEULA(&cfg, opts); err != nil {
 		return err
 	}
 
-	// 4. Resolve the version into a concrete, checksummed build.
 	art, mc, err := resolveBuild(ctx, &cfg)
 	if err != nil {
 		return environError(err, "Check your connection, or try another version with --mc.")
@@ -114,7 +110,6 @@ func runNew(cmd *cobra.Command, name string, opts newOptions) error {
 		ui.Warn("This is an experimental build (%s)", strings.ToLower(art.Channel))
 	}
 
-	// 5. Java. The absolute path of whatever we end up with goes into start.bat.
 	runtime, err := ensureJava(ctx, mc)
 	if err != nil {
 		return environError(err, fmt.Sprintf(
@@ -122,7 +117,6 @@ func runNew(cmd *cobra.Command, name string, opts newOptions) error {
 			mc.RequiredJava()))
 	}
 
-	// 6. Download, verify, generate.
 	result, err := server.Create(ctx, server.Plan{
 		Config:   cfg,
 		Dir:      dir,
@@ -139,8 +133,6 @@ func runNew(cmd *cobra.Command, name string, opts newOptions) error {
 	return nil
 }
 
-// resolveFlags turns the command line into a Config plus a record of which
-// values must not be asked for.
 func resolveFlags(name string, opts newOptions, cmd *cobra.Command) (config.Config, wizard.Provided, error) {
 	cfg := config.Default()
 	cfg.Name = name
@@ -170,8 +162,6 @@ func resolveFlags(name string, opts newOptions, cmd *cobra.Command) (config.Conf
 		cfg.Dir = opts.dir
 	}
 
-	// --yes has to run with no questions at all, so every value needs either a
-	// flag or a default. Only the name has neither.
 	if opts.yes {
 		if cfg.Name == "" {
 			return cfg, provided, userError(
@@ -194,9 +184,6 @@ func resolveFlags(name string, opts newOptions, cmd *cobra.Command) (config.Conf
 	return cfg, provided, nil
 }
 
-// ensureEULA requires explicit acceptance and records it on the config, which
-// is what lets eula.txt be written. In non-interactive mode the flag is the
-// only way to give it; mcinit never assumes it.
 func ensureEULA(cfg *config.Config, opts newOptions) error {
 	switch {
 	case opts.acceptEULA:
@@ -216,8 +203,6 @@ func ensureEULA(cfg *config.Config, opts newOptions) error {
 	return nil
 }
 
-// resolveBuild turns "latest" or a version string into a concrete artifact,
-// and returns the parsed version so the Java requirement can be derived.
 func resolveBuild(ctx context.Context, cfg *config.Config) (provider.Artifact, mcver.Version, error) {
 	p, err := provider.For(cfg.Software)
 	if err != nil {
@@ -280,14 +265,9 @@ func printSummary(cfg config.Config, art provider.Artifact, rt javart.Runtime, r
 			cfg.Gamemode, cfg.Difficulty, cfg.MaxPlayers, cfg.Port, cfg.OnlineMode), Dim: true},
 	})
 
-	// ".\" is not decoration: PowerShell does not run executables from the
-	// current directory without it, and in cmd it stops the `start` builtin
-	// from shadowing the file.
 	ui.Done("cd "+relativeTo(result.Dir), `.\start.bat`)
 }
 
-// relativeTo prefers a short relative path in the closing command, falling
-// back to the absolute one when the server is not under the working directory.
 func relativeTo(dir string) string {
 	wd, err := os.Getwd()
 	if err != nil {

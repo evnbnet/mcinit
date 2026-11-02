@@ -22,8 +22,6 @@ func TestVersionOptions(t *testing.T) {
 		t.Fatalf("got %d options, want %d versions plus the escape hatch", len(options), len(versions))
 	}
 
-	// The newest is first and labelled, but its value stays the bare version
-	// so it can be passed straight to the API.
 	if options[0].Value != "26.3" {
 		t.Errorf("first value = %q, want 26.3", options[0].Value)
 	}
@@ -34,8 +32,6 @@ func TestVersionOptions(t *testing.T) {
 		t.Errorf("second label = %q, only the first should be marked", options[1].Key)
 	}
 
-	// The last entry must be the sentinel, or "otra…" would be sent to the
-	// API as a literal version string.
 	last := options[len(options)-1]
 	if last.Value != otherSentinel {
 		t.Errorf("last value = %q, want the sentinel", last.Value)
@@ -48,7 +44,7 @@ func TestVersionOptions(t *testing.T) {
 }
 
 func TestVersionOptionsEmpty(t *testing.T) {
-	// Even with nothing from the API the user can still type a version.
+
 	options := versionOptions(nil)
 	if len(options) != 1 || options[0].Value != otherSentinel {
 		t.Errorf("got %d options, want just the escape hatch", len(options))
@@ -71,8 +67,7 @@ func TestValidateRAM(t *testing.T) {
 }
 
 func TestValidateRAMMatchesConfigBounds(t *testing.T) {
-	// The wizard and Config must agree, or the wizard would accept a value
-	// that Validate then rejects after every question has been answered.
+
 	cfg := config.Default()
 	cfg.Name = "x"
 	cfg.Software = config.Paper
@@ -93,7 +88,7 @@ func TestValidateName(t *testing.T) {
 			t.Errorf("validateName(%q) = %v, want nil", s, err)
 		}
 	}
-	// Anything that cannot become a directory on Windows.
+
 	invalid := []string{"", "   ", "a/b", `a\b`, "c:nope", "what?", "wild*card", `quo"te`, "a<b", "a>b", "a|b"}
 	for _, s := range invalid {
 		if err := validateName(s); err == nil {
@@ -102,15 +97,12 @@ func TestValidateName(t *testing.T) {
 	}
 }
 
-// renderForm initialises a form and returns what it draws, without needing a
-// terminal. This is how huh's own tests exercise forms.
 func renderForm(t *testing.T, form *huh.Form) string {
 	t.Helper()
 	form.Update(form.Init())
 	return form.View()
 }
 
-// pressDown sends n down-arrow presses and returns the resulting view.
 func pressDown(t *testing.T, form *huh.Form, n int) string {
 	t.Helper()
 	var model tea.Model = form
@@ -130,10 +122,6 @@ func testVersions(n int) []mcver.Version {
 	return all[:n]
 }
 
-// TestVersionListNeverScrolls is the regression test for the version menu
-// scrolling: huh only scrolls a select that was given an explicit Height, and
-// the group height it locks in depends on the width being set first. Both are
-// easy to reintroduce, and both make options slide out of view.
 func TestVersionListNeverScrolls(t *testing.T) {
 	versions := testVersions(versionChoices)
 	choice := versions[0].Raw
@@ -151,8 +139,7 @@ func TestVersionListNeverScrolls(t *testing.T) {
 }
 
 func TestVersionListStaysPutWhileNavigating(t *testing.T) {
-	// Walking the cursor to the bottom must not push the top of the list out
-	// of view, which is exactly what scrolling would do.
+
 	versions := testVersions(versionChoices)
 
 	for _, presses := range []int{0, 1, 4, versionChoices} {
@@ -172,8 +159,7 @@ func TestVersionListStaysPutWhileNavigating(t *testing.T) {
 }
 
 func TestVersionFormWithOneVersion(t *testing.T) {
-	// A provider that offers a single version must still render, including the
-	// escape hatch.
+
 	versions := testVersions(1)
 	choice := versions[0].Raw
 	view := renderForm(t, versionForm(versions, &choice))

@@ -3,9 +3,7 @@ package mcver
 import "testing"
 
 func TestCompareAcrossSchemes(t *testing.T) {
-	// The whole reason this package exists: the year-based scheme is newer
-	// than the 1.x scheme even though its major number looks smaller in
-	// semver terms.
+
 	tests := []struct {
 		a, b string
 		want int
@@ -20,12 +18,12 @@ func TestCompareAcrossSchemes(t *testing.T) {
 		{"1.21.11", "1.21.9", 1},
 		{"1.20.5", "1.20.4", 1},
 		{"1.8.8", "1.8.8", 0},
-		// A stable release outranks a release candidate of the same number.
+
 		{"26.3", "26.3-rc-3", 1},
 		{"26.3-rc-3", "26.3", -1},
 		{"26.3-rc-3", "26.3-rc-2", 1},
 		{"1.21.2-pre1", "1.21.2", -1},
-		// Trailing zeros are equivalent to absent components.
+
 		{"1.21.0", "1.21", 0},
 	}
 	for _, tt := range tests {
@@ -41,20 +39,20 @@ func TestRequiredJava(t *testing.T) {
 		version string
 		want    int
 	}{
-		// Year-based scheme.
+
 		{"26.1", 25},
 		{"26.2", 25},
 		{"26.3", 25},
 		{"26.3-rc-3", 25},
 		{"27.1", 25},
-		// The 1.20.4 / 1.20.5 boundary is where Java 21 starts.
+
 		{"1.20.4", 17},
 		{"1.20.5", 21},
 		{"1.20.6", 21},
 		{"1.21", 21},
 		{"1.21.11", 21},
 		{"1.20.5-pre1", 21},
-		// The 1.16.5 / 1.17 boundary is where Java 17 starts.
+
 		{"1.16.5", 8},
 		{"1.17", 17},
 		{"1.18", 17},

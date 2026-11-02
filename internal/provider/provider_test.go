@@ -12,8 +12,6 @@ import (
 	"github.com/evanb/mcinit/internal/config"
 )
 
-// serveFixtures stands up a fake API that answers each path with a saved
-// response, and points the provider at it.
 func serveFixtures(t *testing.T, routes map[string]string) *httptest.Server {
 	t.Helper()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -58,7 +56,7 @@ func TestPaperParsing(t *testing.T) {
 	if len(versions) == 0 {
 		t.Fatal("no versions parsed; the map-of-groups shape may have changed")
 	}
-	// Newest first, and release candidates filtered out.
+
 	if got := versions[0].Raw; got != "26.3" {
 		t.Errorf("newest version = %q, want 26.3", got)
 	}
@@ -124,8 +122,7 @@ func TestPurpurParsing(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// Purpur publishes MD5 only; if this ever becomes sha256 the download
-	// verification must follow.
+
 	if art.Algo != MD5 {
 		t.Errorf("Algo = %q, want %q", art.Algo, MD5)
 	}
@@ -160,8 +157,6 @@ func TestForRejectsUnknownSoftware(t *testing.T) {
 	}
 }
 
-// TestLiveAPIs talks to the real APIs to catch upstream shape changes — the
-// reason the v2 Paper endpoints stopped working. Skipped under -short.
 func TestLiveAPIs(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping live API check in -short mode")

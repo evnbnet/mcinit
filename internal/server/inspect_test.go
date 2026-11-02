@@ -7,7 +7,6 @@ import (
 	"testing"
 )
 
-// writeServer lays out a minimal server directory for testing.
 func writeServer(t *testing.T, properties string, worlds ...string) string {
 	t.Helper()
 	dir := t.TempDir()
@@ -63,8 +62,7 @@ malformed line with no equals
 }
 
 func TestInspectIgnoresNonsensePort(t *testing.T) {
-	// A hand-edited file should not produce a nonsense port that later code
-	// would try to dial.
+
 	for _, line := range []string{"server-port=abc", "server-port=", "server-port=99999", "server-port=0"} {
 		info, err := Inspect(writeServer(t, line+"\n"))
 		if err != nil {
@@ -81,8 +79,7 @@ func TestInspectRejectsNonServer(t *testing.T) {
 	if err == nil {
 		t.Fatal("Inspect accepted a directory with no server.properties")
 	}
-	// The message has to tell the user what is wrong, since running a command
-	// from the wrong folder is the common mistake.
+
 	if !strings.Contains(err.Error(), "server.properties") {
 		t.Errorf("error %q does not mention the missing file", err)
 	}
@@ -117,10 +114,6 @@ func TestWorldsEmptyBeforeFirstStart(t *testing.T) {
 	}
 }
 
-// TestSessionLockedOnUnlockedFiles covers the cases a unit test can reach. The
-// locked case needs a running Minecraft and was verified against a real Paper
-// server: with the server up the read fails with "another process has locked a
-// portion of the file", and with it stopped the read succeeds.
 func TestSessionLockedOnUnlockedFiles(t *testing.T) {
 	dir := t.TempDir()
 
@@ -143,8 +136,7 @@ func TestSessionLockedOnUnlockedFiles(t *testing.T) {
 }
 
 func TestIsRunningOnIdleServer(t *testing.T) {
-	// Port 0 never has a listener, so this exercises the whole path without
-	// depending on what else is running on the machine.
+
 	dir := writeServer(t, "level-name=world\nserver-port=1\n", "world")
 	info, err := Inspect(dir)
 	if err != nil {

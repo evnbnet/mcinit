@@ -1,9 +1,3 @@
-# mcinit installer
-#
-#   irm https://github.com/evanb/mcinit/releases/latest/download/install.ps1 | iex
-#
-# Downloads the latest release, puts mcinit.exe in %LOCALAPPDATA%\mcinit\bin and
-# adds that directory to the user PATH. No admin rights needed.
 
 #Requires -Version 5.1
 Set-StrictMode -Version Latest
@@ -13,7 +7,6 @@ $Repo    = 'evanb/mcinit'
 $Root    = Join-Path $env:LOCALAPPDATA 'mcinit'
 $BinDir  = Join-Path $Root 'bin'
 
-# Match the palette the CLI itself uses, degrading when the host has no color.
 $Accent = if ($Host.UI.SupportsVirtualTerminal) { "$([char]27)[38;2;125;86;244m" } else { '' }
 $Dim    = if ($Host.UI.SupportsVirtualTerminal) { "$([char]27)[90m" } else { '' }
 $Green  = if ($Host.UI.SupportsVirtualTerminal) { "$([char]27)[38;2;4;181;117m" } else { '' }
@@ -36,8 +29,6 @@ Write-Host ''
 
 $arch = Get-Arch
 
-# Ask the API for the tag so the archive name can be built exactly; the
-# /latest/download/ redirect does not expose the version number.
 Write-Step 'Looking up the latest release'
 $release = Invoke-RestMethod -Uri "https://api.github.com/repos/$Repo/releases/latest" -Headers @{
     'User-Agent' = 'mcinit-installer'
@@ -59,8 +50,6 @@ New-Item -ItemType Directory -Path $temp -Force | Out-Null
 try {
     $zip = Join-Path $temp $asset
     Write-Step "Downloading $asset"
-    # Invoke-WebRequest is slow for binaries in PS 5.1 unless the progress bar
-    # is suppressed.
     $previousProgress = $ProgressPreference
     $ProgressPreference = 'SilentlyContinue'
     try {
@@ -69,7 +58,6 @@ try {
         $ProgressPreference = $previousProgress
     }
 
-    # Verify against the release's checksums.txt before running anything.
     $checksums = ($release.assets | Where-Object { $_.name -eq 'checksums.txt' } | Select-Object -First 1).browser_download_url
     if ($checksums) {
         $expected = ((Invoke-WebRequest -Uri $checksums -UseBasicParsing).Content -split "`n" |
@@ -95,8 +83,6 @@ try {
     Remove-Item -Path $temp -Recurse -Force -ErrorAction SilentlyContinue
 }
 
-# Add to the user PATH, never the machine one: no elevation, no surprises for
-# other accounts.
 $userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
 if ($null -eq $userPath) { $userPath = '' }
 $alreadyOnPath = ($userPath -split ';' | Where-Object { $_.TrimEnd('\') -ieq $BinDir.TrimEnd('\') }).Count -gt 0
@@ -106,7 +92,6 @@ if ($alreadyOnPath) {
 } else {
     $updated = if ([string]::IsNullOrWhiteSpace($userPath)) { $BinDir } else { "$($userPath.TrimEnd(';'));$BinDir" }
     [Environment]::SetEnvironmentVariable('Path', $updated, 'User')
-    # Also update this session so the user can try it right away.
     $env:Path = "$env:Path;$BinDir"
     Write-Step 'Added to the user PATH'
 }

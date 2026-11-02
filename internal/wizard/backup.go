@@ -8,11 +8,6 @@ import (
 	"github.com/evanb/mcinit/internal/backup"
 )
 
-// PickBackup asks which backup to restore.
-//
-// Like every other list in the wizard it passes no Height: huh scrolls a select
-// only when it is given one, and a backup sliding out of view while you choose
-// which one to restore is exactly the wrong moment for that.
 func PickBackup(archives []backup.Archive) (backup.Archive, error) {
 	if len(archives) == 0 {
 		return backup.Archive{}, fmt.Errorf("there are no backups yet")
@@ -36,12 +31,6 @@ func PickBackup(archives []backup.Archive) (backup.Archive, error) {
 	return archives[chosen], nil
 }
 
-// ConfirmByName makes the user type the server's name before something
-// destructive happens.
-//
-// This is deliberately more work than a yes/no: a stray enter on a confirm
-// dialog should not be able to replace a world, and typing the name proves the
-// user knows which server they are pointing at.
 func ConfirmByName(name string) error {
 	typed := ""
 	form := newForm(huh.NewInput().

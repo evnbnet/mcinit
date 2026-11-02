@@ -50,8 +50,7 @@ func runBackup(dir string, force bool) error {
 				fmt.Errorf("the server is running (%s)", why),
 				"Stop it first so the world is saved consistently, or pass --force.")
 		}
-		// Worth saying out loud: a world copied while Minecraft is writing to
-		// it can contain half-written region files.
+
 		ui.Warn("The server is running (%s); this backup may be inconsistent", why)
 	}
 

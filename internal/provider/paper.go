@@ -10,19 +10,14 @@ import (
 	"github.com/evanb/mcinit/internal/mcver"
 )
 
-// paperAPI is the "fill" v3 API. The older api.papermc.io/v2 endpoints are
-// gone, and v3 rejects requests without a descriptive User-Agent.
 var paperAPI = "https://fill.papermc.io/v3/projects/paper"
 
-// paperDownloadKey selects the plain server jar from a build's download set.
 const paperDownloadKey = "server:default"
 
 type paper struct{}
 
 func (paper) Software() config.Software { return config.Paper }
 
-// paperVersions mirrors GET /v3/projects/paper. Versions arrive grouped by
-// major.minor, which makes the JSON a map rather than a list.
 type paperVersions struct {
 	Versions map[string][]string `json:"versions"`
 }
@@ -39,7 +34,6 @@ func (p paper) Versions(ctx context.Context) ([]mcver.Version, error) {
 	return sortNewestFirst(all), nil
 }
 
-// paperBuild mirrors GET /v3/projects/paper/versions/{v}/builds/latest.
 type paperBuild struct {
 	ID        int    `json:"id"`
 	Channel   string `json:"channel"`

@@ -1,6 +1,3 @@
-// Package ui owns every byte mcinit prints: the palette, the glyphs, the huh
-// form theme and the download progress bar. Nothing else in the project
-// mentions a color, so the look can be changed in one place.
 package ui
 
 import (
@@ -12,7 +9,6 @@ import (
 	"github.com/muesli/termenv"
 )
 
-// The palette. Adjusting these five values restyles the whole CLI.
 const (
 	colAccent  = lipgloss.Color("#7D56F4")
 	colMuted   = lipgloss.Color("#6C6C6C")
@@ -21,7 +17,6 @@ const (
 	colDanger  = lipgloss.Color("#FF5F87")
 )
 
-// indent aligns every line mcinit prints under the banner.
 const indent = "  "
 
 var (
@@ -33,8 +28,6 @@ var (
 	dangerStyle  = lipgloss.NewStyle().Foreground(colDanger)
 )
 
-// glyphSet lets the whole UI degrade to ASCII without changing any alignment:
-// every plain glyph is one column wide, same as the Unicode one.
 type glyphSet struct {
 	ok, warn, err, arrow string
 	spinner              []string
@@ -59,16 +52,10 @@ var (
 	interactive = true
 )
 
-// Configure sets up colors and glyphs for the current terminal. Pass the value
-// of --no-color; NO_COLOR in the environment and a non-terminal stdout are
-// detected here and have the same effect.
-//
-// Call this once, before anything is printed.
 func Configure(noColor bool) {
 	tty := isatty.IsTerminal(os.Stdout.Fd()) || isatty.IsCygwinTerminal(os.Stdout.Fd())
 	interactive = tty
 
-	// https://no-color.org: any non-empty value disables color.
 	plain := noColor || os.Getenv("NO_COLOR") != "" || !tty
 	if plain {
 		lipgloss.SetColorProfile(termenv.Ascii)
@@ -76,12 +63,8 @@ func Configure(noColor bool) {
 	}
 }
 
-// Interactive reports whether stdout is a terminal. Prompts and the repainting
-// progress bar need this; piped output gets plain lines instead.
 func Interactive() bool { return interactive }
 
-// FormTheme is the huh theme: huh's base theme with the accent swapped in for
-// focus and selection, and everything else left alone so the forms stay quiet.
 func FormTheme() *huh.Theme {
 	t := huh.ThemeBase()
 

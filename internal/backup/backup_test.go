@@ -10,8 +10,6 @@ import (
 	"github.com/evanb/mcinit/internal/server"
 )
 
-// fakeServer builds a server directory that looks like one Minecraft has run
-// at least once, including the things a backup must skip.
 func fakeServer(t *testing.T) server.Info {
 	t.Helper()
 	dir := t.TempDir()
@@ -94,7 +92,7 @@ func TestCreateContents(t *testing.T) {
 		"server.properties",
 		"ops.json",
 		"whitelist.json",
-		// Plugin jars are kept: mcinit cannot download them again.
+
 		"plugins/EssentialsX.jar",
 		"plugins/Essentials/cfg.yml",
 		manifestName,
@@ -105,7 +103,7 @@ func TestCreateContents(t *testing.T) {
 	}
 
 	for _, unwanted := range []string{
-		"paper-1.21.11-132.jar", // the server jar is re-downloadable
+		"paper-1.21.11-132.jar",
 		"libraries/com/foo/bar.jar",
 		"logs/latest.log",
 		"cache/mojang.json",
@@ -127,8 +125,7 @@ func TestCreateExcludesEarlierBackups(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// A second backup must not swallow the first; otherwise each one is
-	// bigger than the last.
+
 	second, err := Create(info, ReasonPreRestore)
 	if err != nil {
 		t.Fatal(err)
@@ -173,8 +170,7 @@ func TestCreateManifest(t *testing.T) {
 }
 
 func TestCreateRefusesEmptyServer(t *testing.T) {
-	// A server that has never started has no world; backing it up would
-	// produce a zip that looks valid and restores nothing.
+
 	dir := t.TempDir()
 	os.WriteFile(filepath.Join(dir, "server.properties"), []byte("level-name=world\n"), 0o644)
 	os.WriteFile(filepath.Join(dir, "paper.jar"), []byte("jar"), 0o644)
@@ -210,7 +206,7 @@ func TestListNewestFirst(t *testing.T) {
 	}
 
 	first, _ := Create(info, ReasonManual)
-	// Force distinct timestamps; the name has minute resolution.
+
 	os.Rename(first.Path, filepath.Join(info.Dir, BackupsDir, "2026-01-01_0900.zip"))
 	Create(info, ReasonPreRestore)
 

@@ -47,7 +47,6 @@ func newRestoreCmd() *cobra.Command {
 	return cmd
 }
 
-// chooseArchive resolves which backup to restore, from a flag or by asking.
 func chooseArchive(archives []backup.Archive, opts restoreOptions) (backup.Archive, error) {
 	switch {
 	case opts.pick != "":
@@ -60,7 +59,7 @@ func chooseArchive(archives []backup.Archive, opts restoreOptions) (backup.Archi
 			fmt.Errorf("there is no backup called %q", opts.pick),
 			"Run mcinit restore with no flags to see the list.")
 	case opts.latest:
-		return archives[0], nil // List returns newest first
+		return archives[0], nil
 	}
 
 	chosen, err := wizard.PickBackup(archives)
@@ -79,8 +78,6 @@ func runRestore(opts restoreOptions) error {
 		return userError(err, "Run this from inside a server folder, or pass --dir.")
 	}
 
-	// Checked before anything is chosen, so the user is not asked to pick a
-	// backup only to be told it cannot be applied.
 	if running, why := info.IsRunning(); running {
 		return userError(
 			fmt.Errorf("the server is running (%s)", why),
@@ -103,8 +100,7 @@ func runRestore(opts restoreOptions) error {
 	}
 
 	if opts.yes {
-		// Still safe without the prompt: the state being replaced is archived
-		// first and shows up in the next listing.
+
 		ui.Warn("Replacing the current world (--yes)")
 	} else if err := wizard.ConfirmByName(info.Name); err != nil {
 		return classifyWizardError(err)

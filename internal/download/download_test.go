@@ -80,7 +80,7 @@ func TestFetchRejectsBadChecksum(t *testing.T) {
 	if err == nil {
 		t.Fatal("Fetch accepted a file whose digest did not match")
 	}
-	// The whole point: a failed verification must not install anything.
+
 	if _, statErr := os.Stat(dest); !os.IsNotExist(statErr) {
 		t.Error("the destination exists after a checksum mismatch")
 	}
@@ -88,7 +88,7 @@ func TestFetchRejectsBadChecksum(t *testing.T) {
 }
 
 func TestFetchMD5(t *testing.T) {
-	// Purpur's path: MD5 is the only digest it publishes.
+
 	body := []byte("purpur jar")
 	srv := serve(t, body)
 	dest := filepath.Join(t.TempDir(), "purpur.jar")
@@ -99,8 +99,7 @@ func TestFetchMD5(t *testing.T) {
 		Algo:     AlgoMD5,
 		Checksum: "0e3e4bf7a09e1ff7f5e1a0e48ba3ce2a",
 	})
-	// We do not hardcode the right digest here; we only assert that MD5 is
-	// actually exercised rather than rejected as unsupported.
+
 	if err != nil && strings.Contains(err.Error(), "unsupported") {
 		t.Fatalf("MD5 was rejected as unsupported: %v", err)
 	}
@@ -147,8 +146,7 @@ func TestFetchReportsHTTPError(t *testing.T) {
 }
 
 func TestFetchOverwritesExistingFile(t *testing.T) {
-	// Re-running mcinit over an existing jar must work; Windows refuses to
-	// rename onto an existing path.
+
 	body := []byte("new jar")
 	srv := serve(t, body)
 	dest := filepath.Join(t.TempDir(), "server.jar")

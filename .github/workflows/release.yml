@@ -14,7 +14,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # goreleaser needs the full history for the changelog
+          fetch-depth: 0
 
       - uses: actions/setup-go@v5
         with:
@@ -27,3 +27,4 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+

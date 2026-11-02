@@ -1,6 +1,3 @@
-// Package wizard asks for the handful of things mcinit cannot infer. Each
-// question is its own small form, so a value supplied by a flag simply skips
-// its screen instead of appearing pre-filled.
 package wizard
 
 import (
@@ -17,15 +14,10 @@ import (
 	"github.com/evanb/mcinit/internal/ui"
 )
 
-// ErrAborted means the user pressed Ctrl+C or Esc. The caller exits quietly:
-// nothing was created, so there is nothing to explain.
 var ErrAborted = errors.New("cancelled")
 
-// ErrEULARejected means the user declined Mojang's terms. Without acceptance
-// the server cannot legally or technically start, so creation stops.
 var ErrEULARejected = errors.New("you did not accept the Minecraft EULA")
 
-// Provided marks the values that came from flags and must not be asked for.
 type Provided struct {
 	Software bool
 	Version  bool
@@ -33,15 +25,10 @@ type Provided struct {
 	Dir      bool
 }
 
-// versionChoices is how many recent versions the menu offers before falling
-// back to typing one. Enough to cover what people actually run; short enough
-// to read without scrolling.
 const versionChoices = 8
 
-// otherSentinel marks the "type it myself" entry in a select.
 const otherSentinel = "\x00other"
 
-// Run fills in whatever the flags left open and returns the completed config.
 func Run(ctx context.Context, cfg config.Config, provided Provided) (config.Config, error) {
 	if !provided.Software {
 		if err := askSoftware(&cfg); err != nil {
@@ -124,8 +111,6 @@ func askVersion(ctx context.Context, cfg *config.Config) error {
 		return nil
 	}
 
-	// Typed by hand: validate the shape here so a typo is caught before the
-	// API is asked for a version that does not exist.
 	typed := ""
 	form = newForm(huh.NewInput().
 		Title("Minecraft version").
@@ -222,8 +207,6 @@ func askDir(cfg *config.Config) error {
 	return nil
 }
 
-// ConfirmEULA asks for Mojang's terms explicitly. It is a separate step on
-// purpose: mcinit never writes eula=true on the user's behalf.
 func ConfirmEULA() error {
 	accepted := false
 	form := newForm(huh.NewConfirm().
@@ -242,24 +225,16 @@ func ConfirmEULA() error {
 	return nil
 }
 
-// formWidth keeps every question the same width so the questions do not jump
-// around as the wizard advances.
 const formWidth = 64
 
 func newForm(field huh.Field) *huh.Form {
-	// Order matters. Applying the theme is what makes huh lock the group's
-	// height to whatever its content measures at that moment, and it only does
-	// so once. Width and help affect how tall the content is, so they have to
-	// be set first or the locked height is computed for a layout that is no
-	// longer the one being drawn — which is what turns a list that fits into a
-	// scrolling one.
+
 	return huh.NewForm(huh.NewGroup(field)).
 		WithWidth(formWidth).
 		WithShowHelp(true).
 		WithTheme(ui.FormTheme())
 }
 
-// run executes a form and translates huh's abort into our own sentinel.
 func run(form *huh.Form) error {
 	if err := form.Run(); err != nil {
 		if errors.Is(err, huh.ErrUserAborted) {
@@ -270,8 +245,6 @@ func run(form *huh.Form) error {
 	return nil
 }
 
-// AskName asks for the server name, used only when it was not given as an
-// argument.
 func AskName() (string, error) {
 	name := ""
 	form := newForm(huh.NewInput().
@@ -288,7 +261,6 @@ func AskName() (string, error) {
 	return strings.TrimSpace(name), nil
 }
 
-// validateName rejects names that would not survive becoming a directory.
 func validateName(s string) error {
 	s = strings.TrimSpace(s)
 	if s == "" {
@@ -300,11 +272,8 @@ func validateName(s string) error {
 	return nil
 }
 
-// forbiddenInName lists the characters Windows rejects in a directory name.
 const forbiddenInName = `\/:*?"<>|`
 
-// versionOptions builds the version menu: the newest few, newest first and
-// labelled, plus an escape hatch for typing one that is not listed.
 func versionOptions(versions []mcver.Version) []huh.Option[string] {
 	options := make([]huh.Option[string], 0, len(versions)+1)
 	for i, v := range versions {
@@ -317,9 +286,6 @@ func versionOptions(versions []mcver.Version) []huh.Option[string] {
 	return append(options, huh.NewOption("another…", otherSentinel))
 }
 
-// versionForm builds the version menu. It deliberately sets no Height: huh
-// only scrolls a select when it is given one, and sizes the list to fit every
-// option when it is not. Every version stays on screen as the cursor moves.
 func versionForm(versions []mcver.Version, choice *string) *huh.Form {
 	description := ""
 	if len(versions) > 0 {

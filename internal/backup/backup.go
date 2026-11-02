@@ -15,16 +15,10 @@ import (
 	"github.com/evanb/mcinit/internal/ui"
 )
 
-// stampLayout names backups so that sorting them as text sorts them by time.
 const stampLayout = "2006-01-02_1504"
 
-// partSuffix is the in-progress name, renamed only once the zip is complete.
-// Same idea as internal/download: a half-written file must never look like a
-// usable one.
 const partSuffix = ".part"
 
-// Manifest is stored inside each zip so a backup can describe itself, rather
-// than the listing having to guess from the file name.
 type Manifest struct {
 	McinitVersion string    `json:"mcinit_version"`
 	Created       time.Time `json:"created"`
@@ -33,37 +27,29 @@ type Manifest struct {
 	Worlds        []string  `json:"worlds"`
 	Files         int       `json:"files"`
 	Bytes         int64     `json:"bytes"`
-	// Reason distinguishes a backup the user asked for from the safety copy
-	// restore takes before overwriting.
+
 	Reason string `json:"reason"`
 }
 
-// Reasons recorded in a manifest.
 const (
 	ReasonManual     = "manual"
 	ReasonPreRestore = "pre-restore"
 )
 
-// Result reports what a backup ended up containing.
 type Result struct {
 	Path     string
 	Manifest Manifest
-	Size     int64 // size of the zip on disk
+	Size     int64
 }
 
-// entry is one file queued for the archive.
 type entry struct {
 	abs  string
-	rel  string // forward-slash path, used as the zip entry name
+	rel  string
 	size int64
 }
 
-// Create writes a backup of the server in dir. Nothing is written to the final
-// path unless the whole archive succeeds.
 func Create(info server.Info, reason string) (Result, error) {
-	// Config alone is not worth an archive: the point of a backup is the world,
-	// and a zip that restores nothing is worse than no zip at all because it
-	// looks like protection.
+
 	if len(info.Worlds()) == 0 {
 		return Result{}, fmt.Errorf("there is no world to back up yet — start the server once so it creates one")
 	}
@@ -104,7 +90,7 @@ func Create(info server.Info, reason string) (Result, error) {
 		return Result{}, err
 	}
 
-	os.Remove(final) // Windows will not rename onto an existing file
+	os.Remove(final)
 	if err := os.Rename(part, final); err != nil {
 		os.Remove(part)
 		return Result{}, err
@@ -117,8 +103,6 @@ func Create(info server.Info, reason string) (Result, error) {
 	return Result{Path: final, Manifest: manifest, Size: size}, nil
 }
 
-// collect walks the server directory and returns everything the rules keep,
-// along with the total byte count so the progress bar can be accurate.
 func collect(info server.Info) ([]entry, []string, int64, error) {
 	selection := NewSelection(info)
 
@@ -128,7 +112,7 @@ func collect(info server.Info) ([]entry, []string, int64, error) {
 
 	err := filepath.Walk(info.Dir, func(abs string, fi os.FileInfo, err error) error {
 		if err != nil {
-			// A file that vanished mid-walk is not worth aborting over.
+
 			if os.IsNotExist(err) {
 				return nil
 			}
@@ -147,10 +131,7 @@ func collect(info server.Info) ([]entry, []string, int64, error) {
 			return nil
 		}
 		if fi.IsDir() {
-			// Directories are recorded too. An empty one — playerdata before
-			// anybody joins, a datapacks folder with nothing in it — would
-			// otherwise vanish on restore, because a zip built only from file
-			// paths cannot describe it.
+
 			dirs = append(dirs, slashed)
 			return nil
 		}
@@ -168,7 +149,6 @@ func collect(info server.Info) ([]entry, []string, int64, error) {
 	return entries, dirs, total, nil
 }
 
-// writeArchive compresses every entry plus the manifest, showing progress.
 func writeArchive(path string, entries []entry, dirs []string, manifest Manifest) error {
 	file, err := os.Create(path)
 	if err != nil {
@@ -206,8 +186,7 @@ func writeArchive(path string, entries []entry, dirs []string, manifest Manifest
 func addFile(zw *zip.Writer, e entry, bar io.Writer) error {
 	src, err := os.Open(e.abs)
 	if err != nil {
-		// Minecraft may hold a file open; say which one rather than failing
-		// with a bare path.
+
 		return fmt.Errorf("could not read %s: %w", e.rel, err)
 	}
 	defer src.Close()
@@ -235,8 +214,6 @@ func addManifest(zw *zip.Writer, manifest Manifest) error {
 	return encoder.Encode(manifest)
 }
 
-// Describe summarises what a backup holds, for the closing lines of the
-// command and for the restore picker.
 func (m Manifest) Describe() string {
 	worlds := "no worlds"
 	if len(m.Worlds) > 0 {
@@ -245,7 +222,6 @@ func (m Manifest) Describe() string {
 	return fmt.Sprintf("%s · %d files", worlds, m.Files)
 }
 
-// HumanSize renders a byte count for display.
 func HumanSize(n int64) string {
 	const unit = 1024
 	if n < unit {
