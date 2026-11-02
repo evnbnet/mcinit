@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -213,16 +214,16 @@ func writeEntry(f *zip.File, dest string, bar io.Writer) error {
 }
 
 func safeJoin(base, name string) (string, error) {
-	cleaned := filepath.Clean(filepath.FromSlash(name))
-	if filepath.IsAbs(cleaned) || strings.HasPrefix(cleaned, string(filepath.Separator)) {
+	cleaned := path.Clean(strings.ReplaceAll(name, "\\", "/"))
+	if path.IsAbs(cleaned) || strings.HasPrefix(cleaned, "/") {
 		return "", fmt.Errorf("the backup contains an absolute path (%s); refusing to unpack it", name)
 	}
-	if cleaned == ".." || strings.HasPrefix(cleaned, ".."+string(filepath.Separator)) {
+	if cleaned == ".." || strings.HasPrefix(cleaned, "../") {
 		return "", fmt.Errorf("the backup tries to write outside the server folder (%s); refusing to unpack it", name)
 	}
 
-	if filepath.VolumeName(cleaned) != "" {
+	if vol := filepath.VolumeName(filepath.FromSlash(cleaned)); vol != "" {
 		return "", fmt.Errorf("the backup contains a drive-qualified path (%s); refusing to unpack it", name)
 	}
-	return filepath.Join(base, cleaned), nil
+	return filepath.Join(base, filepath.FromSlash(cleaned)), nil
 }
