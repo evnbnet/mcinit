@@ -12,12 +12,6 @@
 
   <rect width="1280" height="320" fill="url(#bg)"/>
 
-  <!-- subtle grid -->
-  <g stroke="#21262d" stroke-width="1" opacity="0.5">
-    <path d="M0 80 H1280 M0 160 H1280 M0 240 H1280"/>
-    <path d="M320 0 V320 M640 0 V320 M960 0 V320"/>
-  </g>
-
   <text x="120" y="145" font-family="Segoe UI, system-ui, sans-serif" font-size="86" font-weight="700" fill="#f0f6fc">mcinit</text>
   <text x="122" y="190" font-family="Segoe UI, system-ui, sans-serif" font-size="26" fill="#8b949e">Minecraft server setup, like npm create</text>
 

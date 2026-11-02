@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/banner2.svg" alt="mcinit banner" width="100%">
+  <img src="assets/banner3.svg" alt="mcinit banner" width="100%">
 </p>
 
 <p align="center">
