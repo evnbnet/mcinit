@@ -85,7 +85,7 @@ try {
 
 $userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
 if ($null -eq $userPath) { $userPath = '' }
-$alreadyOnPath = ($userPath -split ';' | Where-Object { $_.TrimEnd('\') -ieq $BinDir.TrimEnd('\') }).Count -gt 0
+$alreadyOnPath = @($userPath -split ';' | Where-Object { $_.TrimEnd('\') -ieq $BinDir.TrimEnd('\') }).Count -gt 0
 
 if ($alreadyOnPath) {
     Write-Step 'Already on the PATH'
