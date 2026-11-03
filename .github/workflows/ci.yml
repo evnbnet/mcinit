@@ -7,9 +7,6 @@ on:
 
 jobs:
   test:
-    # Both platforms mcinit ships for. The macOS runner is the only place the
-    # Unix-only code paths — the fcntl lock probe, the start.command script,
-    # the archive install — actually execute.
     strategy:
       fail-fast: false
       matrix:
@@ -31,16 +28,14 @@ jobs:
 
       - run: go vet ./...
 
-      # Vet the other platform too, so a build-tagged file that only compiles
-      # on its own OS is caught on either runner.
+      # Catches a build-tagged file that only compiles on its own OS.
       - name: vet the other platform
         run: go vet ./...
         env:
           GOOS: ${{ matrix.os == 'windows-latest' && 'darwin' || 'windows' }}
           GOARCH: arm64
 
-      # -short skips the checks that call the real PaperMC, Purpur and Adoptium
-      # APIs, so a CI run never fails because an upstream service is down.
+      # -short skips the tests that call live APIs.
       - run: go test -short ./...
 
       - run: go build ./...

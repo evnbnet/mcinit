@@ -15,8 +15,8 @@ import (
 
 const (
 	exitOK      = 0
-	exitUser    = 1 // bad flags, EULA declined, destination already in use
-	exitEnviron = 2 // network, checksum mismatch, Java install failed
+	exitUser    = 1
+	exitEnviron = 2
 )
 
 type failure struct {
@@ -89,12 +89,6 @@ func Execute() int {
 	return exitUser
 }
 
-// startCommand is how the user launches the server on this platform, as they
-// would type it.
-//
-// The leading "./" is not decoration. PowerShell does not run executables from
-// the current directory without it, in cmd it stops the `start` builtin from
-// shadowing start.bat, and on Unix it is simply required.
 func startCommand() string {
 	if runtime.GOOS == "windows" {
 		return `.\` + server.StartScript()

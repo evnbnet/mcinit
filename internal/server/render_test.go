@@ -148,10 +148,7 @@ func TestEulaAndPropertiesContents(t *testing.T) {
 }
 
 func TestEscapeProperty(t *testing.T) {
-	// The expectations are built from a constant rather than written as literal
-	// backslashes. A `\\` typed inline is easy to mangle, and when the same
-	// mangling hits both the function and its test, the test silently stops
-	// asserting anything — which is exactly what happened here once.
+
 	const bs = `\`
 	tests := []struct{ in, want string }{
 		{"normal motd", "normal motd"},
@@ -167,8 +164,6 @@ func TestEscapeProperty(t *testing.T) {
 	}
 }
 
-// TestPropertyRoundTrip is the guarantee that matters: whatever mcinit writes
-// into server.properties has to come back out unchanged when it reads it.
 func TestPropertyRoundTrip(t *testing.T) {
 	const bs = `\`
 	for _, original := range []string{
@@ -184,9 +179,6 @@ func TestPropertyRoundTrip(t *testing.T) {
 	}
 }
 
-// TestUnescapePropertyHandlesWhatMinecraftWrites covers the forms a real
-// server.properties contains but mcinit never produces: Minecraft escapes the
-// colon in level-type and writes non-ASCII as \uXXXX.
 func TestUnescapePropertyHandlesWhatMinecraftWrites(t *testing.T) {
 	tests := []struct{ in, want string }{
 		{`minecraft\:normal`, "minecraft:normal"},
@@ -194,7 +186,7 @@ func TestUnescapePropertyHandlesWhatMinecraftWrites(t *testing.T) {
 		{`\` + "u00f1", "ñ"},
 		{`tab\there`, "tab\there"},
 		{"nothing to do", "nothing to do"},
-		// Malformed escapes are kept rather than turned into garbage.
+
 		{`\u00`, `\u00`},
 		{`trailing\`, `trailing\`},
 	}
@@ -243,10 +235,6 @@ func TestCreateRefusesWithoutEULA(t *testing.T) {
 	}
 }
 
-// TestStartCommandContents renders the macOS launch script from whatever
-// machine the tests run on. The start script is the most important file mcinit
-// writes and the hardest to eyeball on a platform you are not using, so it is
-// checked here rather than left to a Mac.
 func TestStartCommandContents(t *testing.T) {
 	dir := t.TempDir()
 	if err := renderAllFor("darwin", dir, testData(4, 25)); err != nil {
@@ -262,24 +250,23 @@ func TestStartCommandContents(t *testing.T) {
 	if !strings.HasPrefix(script, "#!/bin/sh\n") {
 		t.Error("start.command has no shebang on its first line")
 	}
-	// The absolute java path is the whole point: a freshly installed Java is
-	// not on the PATH of an already-open shell.
+
 	if !strings.Contains(script, `JAVA="C:\Program Files\Eclipse Adoptium\jre-25\bin\java.exe"`) {
 		t.Error("start.command does not embed the absolute java path")
 	}
 	for _, want := range []string{
-		`cd "$(dirname "$0")"`, // Finder starts scripts in the home directory
+		`cd "$(dirname "$0")"`,
 		"-Xms4G -Xmx4G",
 		"-XX:+UseG1GC",
 		"-Dusing.aikars.flags=https://mcflags.emc.gs",
 		`-jar "paper-26.3-237.jar" nogui`,
-		"read -r _unused", // keeps the Finder window open on a crash
+		"read -r _unused",
 	} {
 		if !strings.Contains(script, want) {
 			t.Errorf("start.command is missing %q", want)
 		}
 	}
-	// A shell script with CRLF fails with "bad interpreter".
+
 	if strings.Contains(script, "\r") {
 		t.Error("start.command contains carriage returns")
 	}
@@ -295,8 +282,7 @@ func TestStartCommandIsExecutable(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// Windows does not model the execute bit, so the assertion only means
-	// something where it does.
+
 	if runtime.GOOS != "windows" && st.Mode().Perm()&0o111 == 0 {
 		t.Errorf("start.command mode is %v; Finder and the shell both need the execute bit", st.Mode().Perm())
 	}
@@ -325,7 +311,7 @@ func TestEachPlatformGetsOneStartScript(t *testing.T) {
 		if len(scripts) != 1 || scripts[0] != want {
 			t.Errorf("%s produced %v, want exactly [%s]", goos, scripts, want)
 		}
-		// eula.txt and server.properties are written on every platform.
+
 		for _, shared := range []string{"eula.txt", "server.properties"} {
 			if _, err := os.Stat(filepath.Join(dir, shared)); err != nil {
 				t.Errorf("%s did not get %s", goos, shared)
@@ -345,14 +331,6 @@ func TestVectorModuleOmittedForJava8OnMac(t *testing.T) {
 	}
 }
 
-// TestStartCommandSurvivesAFailingServer runs the generated macOS script with a
-// stand-in java that exits non-zero, and checks the script still reaches its
-// closing prompt.
-//
-// This is the behaviour a "set -e" at the top silently breaks: the script would
-// exit the moment java failed, closing the Finder window on exactly the crash
-// the user needs to read. A static check for the absence of "set -e" would
-// not catch an equivalent mistake, so the script is actually executed.
 func TestStartCommandSurvivesAFailingServer(t *testing.T) {
 	sh, err := exec.LookPath("sh")
 	if err != nil {
@@ -361,7 +339,6 @@ func TestStartCommandSurvivesAFailingServer(t *testing.T) {
 
 	dir := t.TempDir()
 
-	// A java that reports failure, like a server that crashes on startup.
 	fakeJava := filepath.Join(dir, "fake-java")
 	script := "#!/bin/sh\necho 'simulated crash' >&2\nexit 3\n"
 	if err := os.WriteFile(fakeJava, []byte(script), 0o755); err != nil {
@@ -375,7 +352,7 @@ func TestStartCommandSurvivesAFailingServer(t *testing.T) {
 	}
 
 	cmd := exec.Command(sh, toShellPath(t, filepath.Join(dir, "start.command")))
-	cmd.Stdin = strings.NewReader("\n") // the closing prompt
+	cmd.Stdin = strings.NewReader("\n")
 	out, runErr := cmd.CombinedOutput()
 	output := string(out)
 
@@ -385,16 +362,13 @@ func TestStartCommandSurvivesAFailingServer(t *testing.T) {
 	if !strings.Contains(output, "simulated crash") {
 		t.Errorf("the server's own output was swallowed:\n%s", output)
 	}
-	// The script must pass the server's exit code on, not hide it.
+
 	var exitErr *exec.ExitError
 	if !errors.As(runErr, &exitErr) || exitErr.ExitCode() != 3 {
 		t.Errorf("script exit code = %v, want 3", runErr)
 	}
 }
 
-// TestStartCommandRunsFromAnyDirectory checks the cd that makes a double click
-// work: Finder launches scripts from the home directory, not from the folder
-// the script lives in.
 func TestStartCommandRunsFromAnyDirectory(t *testing.T) {
 	sh, err := exec.LookPath("sh")
 	if err != nil {
@@ -403,7 +377,6 @@ func TestStartCommandRunsFromAnyDirectory(t *testing.T) {
 
 	dir := t.TempDir()
 
-	// A java that proves which directory it was started in.
 	fakeJava := filepath.Join(dir, "fake-java")
 	script := "#!/bin/sh\necho \"cwd=$(pwd)\"\nexit 0\n"
 	if err := os.WriteFile(fakeJava, []byte(script), 0o755); err != nil {
@@ -417,15 +390,13 @@ func TestStartCommandRunsFromAnyDirectory(t *testing.T) {
 	}
 
 	cmd := exec.Command(sh, toShellPath(t, filepath.Join(dir, "start.command")))
-	cmd.Dir = os.TempDir() // started from somewhere else entirely
+	cmd.Dir = os.TempDir()
 	cmd.Stdin = strings.NewReader("\n")
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		t.Fatalf("%v\n%s", err, out)
 	}
 
-	// The jar is referenced by bare name, so the server must run with the
-	// server folder as its working directory.
 	if !strings.Contains(string(out), "cwd=") {
 		t.Fatalf("the stand-in java did not report a directory:\n%s", out)
 	}
@@ -434,8 +405,6 @@ func TestStartCommandRunsFromAnyDirectory(t *testing.T) {
 	}
 }
 
-// toShellPath converts a path for the POSIX shell running the test. On Windows
-// that shell is MSYS/Git Bash, which wants /c/... rather than C:\...
 func toShellPath(t *testing.T, path string) string {
 	t.Helper()
 	if runtime.GOOS != "windows" {

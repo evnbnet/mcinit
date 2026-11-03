@@ -13,12 +13,6 @@ import (
 	"github.com/evanb/mcinit/internal/download"
 )
 
-// Ensure returns a runtime that can run a server needing Java minMajor,
-// installing Temurin first if nothing suitable is present.
-//
-// The returned path is always absolute and always re-detected after an install,
-// because a package manager cannot add anything to the PATH of a process that
-// is already running.
 func Ensure(ctx context.Context, minMajor int) (Runtime, bool, error) {
 	if rt, ok := Detect(minMajor); ok {
 		return rt, false, nil
@@ -31,8 +25,6 @@ func Ensure(ctx context.Context, minMajor int) (Runtime, bool, error) {
 	return rt, true, nil
 }
 
-// install delegates to the platform, which knows its own package manager and
-// package format, and turns a pile of failed attempts into one readable error.
 func install(ctx context.Context, major int) (Runtime, error) {
 	attempts := platformInstall(ctx, major)
 
@@ -48,8 +40,6 @@ func install(ctx context.Context, major int) (Runtime, error) {
 
 var adoptiumAPI = "https://api.adoptium.net/v3"
 
-// adoptiumFile is one downloadable artefact: an installer (.msi, .pkg) or an
-// archive (.zip, .tar.gz). Both carry a SHA-256, so either can be verified.
 type adoptiumFile struct {
 	Name     string `json:"name"`
 	Link     string `json:"link"`
@@ -61,34 +51,22 @@ func (f adoptiumFile) usable() bool { return f.Link != "" && f.Checksum != "" }
 
 type adoptiumAsset struct {
 	Binary struct {
-		// Installer is the platform's native installer, which generally wants
-		// administrator rights.
 		Installer adoptiumFile `json:"installer"`
-		// Package is the plain archive, which can be unpacked anywhere — the
-		// basis for installing without a password.
+
 		Package adoptiumFile `json:"package"`
 	} `json:"binary"`
 	ReleaseName string `json:"release_name"`
 }
 
-// pick selects which of an asset's two downloads a platform wants.
 type pick func(adoptiumAsset) adoptiumFile
 
 func pickInstaller(a adoptiumAsset) adoptiumFile { return a.Binary.Installer }
 func pickArchive(a adoptiumAsset) adoptiumFile   { return a.Binary.Package }
 
-// findAsset asks Adoptium for a build of Java major for this machine, and
-// returns the download the caller asked for.
-//
-// A JRE is tried before a JDK: it is roughly half the size and a server needs
-// nothing more. Not every feature version publishes a JRE, so the JDK is the
-// fallback.
 func findAsset(ctx context.Context, major int, want pick) (adoptiumFile, string, error) {
 	return findAssetFor(ctx, major, adoptiumOS(), adoptiumArch(), want)
 }
 
-// findAssetFor is findAsset with the platform spelled out, so the packages for
-// every target can be checked from any machine.
 func findAssetFor(ctx context.Context, major int, goos, arch string, want pick) (adoptiumFile, string, error) {
 	for _, imageType := range []string{"jre", "jdk"} {
 		url := fmt.Sprintf("%s/assets/latest/%d/hotspot?os=%s&architecture=%s&image_type=%s",
@@ -108,7 +86,6 @@ func findAssetFor(ctx context.Context, major int, goos, arch string, want pick) 
 		"Adoptium publishes no suitable Java %d package for %s/%s", major, goos, arch)
 }
 
-// fetchAdoptium downloads and verifies one Adoptium file.
 func fetchAdoptium(ctx context.Context, file adoptiumFile, dest string, major int) error {
 	return download.Fetch(ctx, download.Request{
 		URL:      file.Link,
@@ -120,7 +97,6 @@ func fetchAdoptium(ctx context.Context, file adoptiumFile, dest string, major in
 	})
 }
 
-// adoptiumArch maps Go's architecture names onto Adoptium's.
 func adoptiumArch() string {
 	switch runtime.GOARCH {
 	case "arm64":

@@ -18,17 +18,8 @@ import (
 	"github.com/evanb/mcinit/internal/ui"
 )
 
-// brewTimeout bounds a single Homebrew install. Downloading a JRE over a slow
-// line is normal; hanging forever is not.
 const brewTimeout = 15 * time.Minute
 
-// platformInstall installs Temurin, returning a note for each attempt that did
-// not work. It stops early once Detect can see a usable runtime.
-//
-// Homebrew is tried first because somebody who has it expects their packages
-// to be managed by it. The archive is the fallback that always works: it needs
-// neither Homebrew nor an administrator password, which keeps installing Java
-// on a Mac as unceremonious as it is on Windows.
 func platformInstall(ctx context.Context, major int) []string {
 	var attempts []string
 
@@ -48,7 +39,6 @@ func platformInstall(ctx context.Context, major int) []string {
 		attempts = append(attempts, "Homebrew is not installed")
 	}
 
-	// The archive path draws its own download bar, so it gets no spinner.
 	ui.Info("Downloading Temurin from Adoptium")
 	if err := archiveInstall(ctx, major); err != nil {
 		attempts = append(attempts, fmt.Sprintf("Adoptium archive: %v", err))
@@ -65,8 +55,7 @@ func brewInstall(ctx context.Context, cask string) error {
 	defer cancel()
 
 	cmd := exec.CommandContext(ctx, "brew", "install", "--cask", cask)
-	// Homebrew prompts for confirmation and for a password on some casks;
-	// neither can be answered from here.
+
 	cmd.Env = append(os.Environ(), "HOMEBREW_NO_AUTO_UPDATE=1", "NONINTERACTIVE=1")
 
 	out, err := cmd.CombinedOutput()
@@ -76,8 +65,6 @@ func brewInstall(ctx context.Context, cask string) error {
 	return nil
 }
 
-// archiveInstall downloads Temurin's .tar.gz and unpacks it into the user's own
-// Java directory, which needs no password and leaves the system untouched.
 func archiveInstall(ctx context.Context, major int) error {
 	file, release, err := findAsset(ctx, major, pickArchive)
 	if err != nil {
@@ -103,8 +90,6 @@ func archiveInstall(ctx context.Context, major int) error {
 		return err
 	}
 
-	// Unpack beside the final location first, so a half-extracted runtime is
-	// never visible to the detector as if it were installed.
 	staging, err := os.MkdirTemp(target, ".mcinit-unpack-")
 	if err != nil {
 		return err
@@ -124,15 +109,13 @@ func archiveInstall(ctx context.Context, major int) error {
 	}
 
 	final := filepath.Join(target, root)
-	os.RemoveAll(final) // a previous half-install, or the same version again
+	os.RemoveAll(final)
 	if err := os.Rename(filepath.Join(staging, root), final); err != nil {
 		return fmt.Errorf("could not move the runtime into %s: %w", target, err)
 	}
 	return nil
 }
 
-// extractTarGz unpacks an archive into dir and returns the single top-level
-// directory it contained, which is the runtime's bundle.
 func extractTarGz(archivePath, dir string) (string, error) {
 	file, err := os.Open(archivePath)
 	if err != nil {
@@ -175,14 +158,12 @@ func extractTarGz(archivePath, dir string) (string, error) {
 			if err := os.MkdirAll(filepath.Dir(dest), 0o755); err != nil {
 				return "", err
 			}
-			// The mode from the archive matters here: java itself has to come
-			// out executable.
+
 			if err := writeFile(reader, dest, header.FileInfo().Mode()); err != nil {
 				return "", err
 			}
 		case tar.TypeSymlink:
-			// A JDK bundle is full of symlinks. A link target that escapes the
-			// destination is refused for the same reason a path is.
+
 			if _, err := safeJoin(dir, path.Join(path.Dir(header.Name), header.Linkname)); err != nil {
 				return "", fmt.Errorf("the archive contains a symlink pointing outside it (%s)", header.Name)
 			}
@@ -209,7 +190,6 @@ func writeFile(src io.Reader, dest string, mode os.FileMode) error {
 	return out.Close()
 }
 
-// topLevel returns the first path segment of an archive entry.
 func topLevel(name string) string {
 	cleaned := path.Clean(strings.ReplaceAll(name, `\`, "/"))
 	if cleaned == "." || cleaned == "/" {
@@ -219,11 +199,6 @@ func topLevel(name string) string {
 	return top
 }
 
-// safeJoin resolves an archive entry name against a destination directory and
-// refuses anything that would escape it.
-//
-// This is the same class of bug as zip slip: an entry named "../../evil" would
-// otherwise let a downloaded archive write anywhere on the machine.
 func safeJoin(base, name string) (string, error) {
 	cleaned := path.Clean(strings.ReplaceAll(name, `\`, "/"))
 	if path.IsAbs(cleaned) || strings.HasPrefix(cleaned, "/") {

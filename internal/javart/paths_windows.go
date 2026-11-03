@@ -8,11 +8,6 @@ import (
 	"sort"
 )
 
-// platformJavaPaths lists the java.exe files in the places Windows installers
-// use, newest-looking first.
-//
-// Both machine-wide and per-user locations are searched because winget can
-// install to either, and the per-user one is what an unelevated install gets.
 func platformJavaPaths() []string {
 	var roots []string
 	for _, env := range []string{"ProgramFiles", "ProgramFiles(x86)", "LOCALAPPDATA"} {
@@ -40,5 +35,4 @@ func platformJavaPaths() []string {
 	return out
 }
 
-// adoptiumOS is the name Adoptium's API uses for this platform.
 func adoptiumOS() string { return "windows" }

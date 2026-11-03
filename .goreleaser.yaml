@@ -5,8 +5,6 @@ project_name: mcinit
 before:
   hooks:
     - go mod tidy
-    # -short skips the live API checks; a release must not fail because
-    # PaperMC or Adoptium is having a bad afternoon.
     - go test -short ./...
 
 builds:
@@ -27,8 +25,7 @@ builds:
 
 archives:
   - id: mcinit
-    # Zip on Windows, tar.gz on macOS: what each platform's tools expect, and
-    # tar.gz preserves the execute bit that a zip would drop.
+    # tar.gz on macOS preserves the execute bit; a zip would drop it.
     formats: [tar.gz]
     format_overrides:
       - goos: windows
@@ -43,20 +40,13 @@ checksum:
   name_template: "checksums.txt"
   algorithm: sha256
 
-# A cask rather than a formula: goreleaser deprecated `brews` because a
-# formula that just drops a pre-built binary in place is what a cask is for.
 homebrew_casks:
   - name: mcinit
-    # Only the binary. Java is installed by mcinit itself at run time, because
-    # which version is needed depends on the Minecraft version the user picks.
     binaries:
       - mcinit
     homepage: "https://github.com/evnbnet/mcinit"
     description: "Set up a Minecraft server on localhost with one command"
-
-    # The binary is not signed or notarised, so Gatekeeper quarantines it and
-    # the first run dies with "cannot be opened". install.sh clears the flag
-    # itself; the cask has to do the same.
+    # Unsigned binary: without this the first run dies on Gatekeeper.
     hooks:
       post:
         install: |
@@ -64,19 +54,10 @@ homebrew_casks:
             system_command "/usr/bin/xattr",
                            args: ["-dr", "com.apple.quarantine", "#{staged_path}/mcinit"]
           end
-
-    # Requires a public repository called homebrew-tap on this account;
-    # goreleaser commits the cask there on every release.
-    #
-    # If you stop publishing a tap, delete this whole block — otherwise the
-    # release fails looking for the token below.
     repository:
       owner: evnbnet
       name: homebrew-tap
-      # Not GITHUB_TOKEN: the token Actions provides is scoped to the
-      # repository running the workflow, so it cannot push to another one.
-      # This needs a personal access token with write access to the tap,
-      # stored as the HOMEBREW_TAP_TOKEN secret.
+      # Needs a PAT with write access to the tap, not GITHUB_TOKEN.
       token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
 
 snapshot:

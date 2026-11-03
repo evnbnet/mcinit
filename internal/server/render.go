@@ -92,25 +92,15 @@ func escapeProperty(s string) string {
 	return strings.ReplaceAll(s, "\n", `\n`)
 }
 
-// generatedFile is one file mcinit writes into a new server directory.
 type generatedFile struct {
 	template string
 	output   string
-	// crlf marks a file that must use Windows line endings. cmd.exe tolerates
-	// LF, but a batch file with mixed endings has bitten enough people that it
-	// is not worth the risk.
+
 	crlf bool
-	// mode is the permission the file is written with. The start script on
-	// Unix has to be executable or neither Finder nor the shell will run it.
+
 	mode os.FileMode
 }
 
-// filesFor returns what to generate for a target operating system.
-//
-// The target is a parameter rather than a call to runtime.GOOS so that the
-// macOS output can be rendered and tested from any machine — which matters,
-// because the start script is the single most important file mcinit writes and
-// the one that is hardest to check by hand on a platform you are not on.
 func filesFor(goos string) []generatedFile {
 	common := []generatedFile{
 		{template: "eula.txt.tmpl", output: "eula.txt", mode: 0o644},
@@ -127,7 +117,6 @@ func filesFor(goos string) []generatedFile {
 	})
 }
 
-// StartScript is the name of the launch script on the current platform.
 func StartScript() string {
 	for _, g := range filesFor(runtime.GOOS) {
 		if strings.HasPrefix(g.output, "start.") {
@@ -141,7 +130,6 @@ func renderAll(dir string, data templateData) error {
 	return renderAllFor(runtime.GOOS, dir, data)
 }
 
-// renderAllFor writes the generated files for a target operating system.
 func renderAllFor(goos, dir string, data templateData) error {
 	for _, g := range filesFor(goos) {
 		body, err := render(g.template, data)
@@ -155,8 +143,7 @@ func renderAllFor(goos, dir string, data templateData) error {
 		if err := os.WriteFile(path, body, g.mode); err != nil {
 			return fmt.Errorf("could not write %s: %w", g.output, err)
 		}
-		// WriteFile only applies the mode when it creates the file, so a
-		// rerun over an existing script would leave it non-executable.
+
 		if err := os.Chmod(path, g.mode); err != nil {
 			return fmt.Errorf("could not set permissions on %s: %w", g.output, err)
 		}

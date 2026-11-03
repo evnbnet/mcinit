@@ -1,19 +1,12 @@
 #!/bin/sh
 # mcinit installer for macOS
-#
 #   curl -fsSL https://github.com/evnbnet/mcinit/releases/latest/download/install.sh | sh
-#
-# Downloads the latest release, puts mcinit in ~/.local/bin and tells you how to
-# add that to your PATH if it is not there. No sudo, nothing written outside
-# your home directory.
 
 set -eu
 
 REPO="evnbnet/mcinit"
 BIN_DIR="${MCINIT_BIN_DIR:-$HOME/.local/bin}"
 
-# Match the palette the CLI itself uses, and skip it entirely when the output
-# is not a terminal, which is the case when piped into a file.
 if [ -t 1 ]; then
   ACCENT=$(printf '\033[38;2;125;86;244m')
   DIM=$(printf '\033[90m')
@@ -42,8 +35,6 @@ done
 
 printf '\n  %smcinit%s installer\n\n' "$ACCENT" "$RESET"
 
-# Ask the API for the tag so the archive name can be built exactly; the
-# /latest/download/ redirect does not expose the version number.
 step 'Looking up the latest release'
 TAG=$(curl -fsSL -H 'Accept: application/vnd.github+json' \
   "https://api.github.com/repos/$REPO/releases/latest" |
@@ -56,15 +47,12 @@ BASE="https://github.com/$REPO/releases/download/$TAG"
 note "$TAG · darwin $ARCH"
 
 TEMP=$(mktemp -d)
-# Clean up whether this succeeds or fails; set -e makes the failure path easy
-# to forget otherwise.
 trap 'rm -rf "$TEMP"' EXIT INT TERM
 
 step "Downloading $ASSET"
 curl -fsSL "$BASE/$ASSET" -o "$TEMP/$ASSET" ||
   die "Could not download $ASSET. Does release $TAG include a macOS $ARCH build?"
 
-# Verify against the release's checksums.txt before unpacking anything.
 if curl -fsSL "$BASE/checksums.txt" -o "$TEMP/checksums.txt" 2>/dev/null; then
   # Matched as a whole field: the asset name contains dots, which grep would
   # treat as wildcards.
@@ -85,13 +73,10 @@ step "Installing into $BIN_DIR"
 mkdir -p "$BIN_DIR"
 tar -xzf "$TEMP/$ASSET" -C "$TEMP"
 [ -f "$TEMP/mcinit" ] || die 'The archive does not contain mcinit.'
-# Install by replacing, so a running copy is not written into.
 mv -f "$TEMP/mcinit" "$BIN_DIR/mcinit"
 chmod +x "$BIN_DIR/mcinit"
 
-# Gatekeeper quarantines anything downloaded, which on first run shows a dialog
-# saying the binary cannot be opened. Clearing the flag here avoids that; it is
-# the same decision the user would make in the dialog.
+# Unsigned binary: without this the first run dies on Gatekeeper.
 if command -v xattr >/dev/null 2>&1; then
   xattr -d com.apple.quarantine "$BIN_DIR/mcinit" 2>/dev/null || true
 fi
@@ -99,7 +84,6 @@ fi
 printf '\n  %sDone%s %s->%s %smcinit new my-server%s\n\n' \
   "$ACCENT" "$RESET" "$DIM" "$RESET" "$ACCENT" "$RESET"
 
-# A PATH check, because ~/.local/bin is not on it by default on macOS.
 case ":$PATH:" in
   *":$BIN_DIR:"*)
     ;;

@@ -1,3 +1,5 @@
+# mcinit installer for Windows
+#   irm https://github.com/evnbnet/mcinit/releases/latest/download/install.ps1 | iex
 
 #Requires -Version 5.1
 Set-StrictMode -Version Latest
@@ -91,6 +93,7 @@ if ($alreadyOnPath) {
     Write-Step 'Already on the PATH'
 } else {
     $updated = if ([string]::IsNullOrWhiteSpace($userPath)) { $BinDir } else { "$($userPath.TrimEnd(';'));$BinDir" }
+    # User PATH, not machine: no elevation needed.
     [Environment]::SetEnvironmentVariable('Path', $updated, 'User')
     $env:Path = "$env:Path;$BinDir"
     Write-Step 'Added to the user PATH'

@@ -62,8 +62,6 @@ func (i Info) Worlds() []string {
 	return out
 }
 
-// readProperties parses the subset of the Java properties format that
-// server.properties uses: key=value lines, # comments, blank lines.
 func readProperties(path string) (map[string]string, error) {
 	file, err := os.Open(path)
 	if os.IsNotExist(err) {
@@ -94,11 +92,6 @@ func readProperties(path string) (map[string]string, error) {
 	return values, nil
 }
 
-// unescapeProperty reverses escapeProperty.
-//
-// Minecraft escapes more than a naive implementation expects — it writes
-// level-type as "minecraft\:normal" and non-ASCII as \uXXXX — so the cases
-// below are the ones a real server.properties actually contains.
 func unescapeProperty(s string) string {
 	if !strings.Contains(s, backslash) {
 		return s
@@ -123,8 +116,7 @@ func unescapeProperty(s string) string {
 		case 'r':
 			b.WriteRune('\r')
 		case 'u':
-			// Malformed escapes are kept as written rather than silently
-			// turned into a replacement character.
+
 			if i+4 < len(runes) {
 				if code, err := strconv.ParseUint(string(runes[i+1:i+5]), 16, 32); err == nil {
 					b.WriteRune(rune(code))
@@ -134,15 +126,13 @@ func unescapeProperty(s string) string {
 			}
 			b.WriteString(`\u`)
 		default:
-			// Covers \\, \:, \= and \#, all of which stand for themselves.
+
 			b.WriteRune(runes[i])
 		}
 	}
 	return b.String()
 }
 
-// Spelled out as constants because an inline `\\` literal is easy to mangle,
-// and a mangled one turns the escaping into a silent no-op.
 const (
 	doubleBackslash = `\` + `\`
 	backslash       = `\`

@@ -118,8 +118,7 @@ func TestDetectPicksClosestMatch(t *testing.T) {
 }
 
 func TestAdoptiumArch(t *testing.T) {
-	// Adoptium names architectures differently from Go; a wrong value yields an
-	// empty asset list and a confusing "no package published" error.
+
 	if got := adoptiumArch(); got != "x64" && got != "aarch64" && got != "x86" {
 		t.Errorf("adoptiumArch() = %q, want one of x64/aarch64/x86", got)
 	}
@@ -133,13 +132,6 @@ func TestAdoptiumOSIsOneTheAPIKnows(t *testing.T) {
 	}
 }
 
-// TestAdoptiumPackagesLiveEveryPlatform asks Adoptium for the exact downloads
-// mcinit would use on each platform it targets, including the ones this machine
-// is not.
-//
-// That last part is the point: a Windows developer has no other way to notice
-// that the mac tarball stopped being published, and the macOS install path
-// cannot work without it.
 func TestAdoptiumPackagesLiveEveryPlatform(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping live Adoptium check in -short mode")
@@ -150,16 +142,13 @@ func TestAdoptiumPackagesLiveEveryPlatform(t *testing.T) {
 		want       pick
 		kind       string
 		suffix     string
-		// upstreamGap marks a combination Adoptium does not publish at all.
-		// Recorded rather than asserted, because it is not ours to fix: on
-		// Windows ARM the only route to a modern Java is winget installing the
-		// x64 build, which runs under emulation.
+
 		upstreamGap bool
 	}{
-		// Windows installs from the MSI.
+
 		{goos: "windows", arch: "x64", want: pickInstaller, kind: "installer", suffix: ".msi"},
 		{goos: "windows", arch: "aarch64", want: pickInstaller, kind: "installer", suffix: ".msi", upstreamGap: true},
-		// macOS unpacks the archive, so no password is needed.
+
 		{goos: "mac", arch: "x64", want: pickArchive, kind: "archive", suffix: ".tar.gz"},
 		{goos: "mac", arch: "aarch64", want: pickArchive, kind: "archive", suffix: ".tar.gz"},
 	}
