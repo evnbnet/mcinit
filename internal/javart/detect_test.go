@@ -2,6 +2,8 @@ package javart
 
 import (
 	"context"
+	"fmt"
+	"strings"
 	"testing"
 )
 
@@ -116,26 +118,76 @@ func TestDetectPicksClosestMatch(t *testing.T) {
 }
 
 func TestAdoptiumArch(t *testing.T) {
-
+	// Adoptium names architectures differently from Go; a wrong value yields an
+	// empty asset list and a confusing "no package published" error.
 	if got := adoptiumArch(); got != "x64" && got != "aarch64" && got != "x86" {
 		t.Errorf("adoptiumArch() = %q, want one of x64/aarch64/x86", got)
 	}
 }
 
-func TestFindInstallerLive(t *testing.T) {
+func TestAdoptiumOSIsOneTheAPIKnows(t *testing.T) {
+	switch got := adoptiumOS(); got {
+	case "windows", "mac", "linux":
+	default:
+		t.Errorf("adoptiumOS() = %q, which the API does not recognise", got)
+	}
+}
+
+// TestAdoptiumPackagesLiveEveryPlatform asks Adoptium for the exact downloads
+// mcinit would use on each platform it targets, including the ones this machine
+// is not.
+//
+// That last part is the point: a Windows developer has no other way to notice
+// that the mac tarball stopped being published, and the macOS install path
+// cannot work without it.
+func TestAdoptiumPackagesLiveEveryPlatform(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping live Adoptium check in -short mode")
 	}
-	for _, major := range []int{17, 21, 25} {
-		asset, err := findInstaller(context.Background(), major)
-		if err != nil {
-			t.Errorf("findInstaller(%d): %v", major, err)
-			continue
+
+	cases := []struct {
+		goos, arch string
+		want       pick
+		kind       string
+		suffix     string
+		// upstreamGap marks a combination Adoptium does not publish at all.
+		// Recorded rather than asserted, because it is not ours to fix: on
+		// Windows ARM the only route to a modern Java is winget installing the
+		// x64 build, which runs under emulation.
+		upstreamGap bool
+	}{
+		// Windows installs from the MSI.
+		{goos: "windows", arch: "x64", want: pickInstaller, kind: "installer", suffix: ".msi"},
+		{goos: "windows", arch: "aarch64", want: pickInstaller, kind: "installer", suffix: ".msi", upstreamGap: true},
+		// macOS unpacks the archive, so no password is needed.
+		{goos: "mac", arch: "x64", want: pickArchive, kind: "archive", suffix: ".tar.gz"},
+		{goos: "mac", arch: "aarch64", want: pickArchive, kind: "archive", suffix: ".tar.gz"},
+	}
+
+	for _, c := range cases {
+		for _, major := range []int{21, 25} {
+			name := fmt.Sprintf("%s-%s-java%d-%s", c.goos, c.arch, major, c.kind)
+			t.Run(name, func(t *testing.T) {
+				file, release, err := findAssetFor(context.Background(), major, c.goos, c.arch, c.want)
+				if err != nil {
+					if c.upstreamGap {
+						t.Logf("%s: not published by Adoptium (known gap): %v", name, err)
+						return
+					}
+					t.Errorf("%s: %v", name, err)
+					return
+				}
+				if len(file.Checksum) != 64 {
+					t.Errorf("%s: checksum = %q, want a sha256", name, file.Checksum)
+				}
+				if !strings.HasSuffix(file.Name, c.suffix) {
+					t.Errorf("%s: got %q, want a %s", name, file.Name, c.suffix)
+				}
+				if file.Size <= 0 {
+					t.Errorf("%s: size = %d", name, file.Size)
+				}
+				t.Logf("%-28s %s (%s)", name, file.Name, release)
+			})
 		}
-		if len(asset.Binary.Installer.Checksum) != 64 {
-			t.Errorf("Java %d installer checksum = %q, want a sha256",
-				major, asset.Binary.Installer.Checksum)
-		}
-		t.Logf("Java %d → %s (%s)", major, asset.Binary.Installer.Name, asset.ReleaseName)
 	}
 }

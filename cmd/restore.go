@@ -124,6 +124,6 @@ func runRestore(opts restoreOptions) error {
 		{Label: "Restored", Value: chosen.Manifest.Describe()},
 		{Label: "Undo", Value: "mcinit restore, and pick the pre-restore copy", Dim: true},
 	})
-	ui.Done("cd "+relativeTo(info.Dir), `.\start.bat`)
+	ui.Done("cd "+relativeTo(info.Dir), startCommand())
 	return nil
 }

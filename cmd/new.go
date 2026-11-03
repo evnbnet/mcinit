@@ -127,7 +127,7 @@ func runNew(cmd *cobra.Command, name string, opts newOptions) error {
 		return environError(err, "Nothing was written. Try again.")
 	}
 	ui.Ok("%s verified (%s)", art.Filename, art.Algo)
-	ui.Ok("eula.txt · server.properties · start.bat")
+	ui.Ok("eula.txt · server.properties · %s", server.StartScript())
 
 	printSummary(cfg, art, runtime, result)
 	return nil
@@ -265,7 +265,7 @@ func printSummary(cfg config.Config, art provider.Artifact, rt javart.Runtime, r
 			cfg.Gamemode, cfg.Difficulty, cfg.MaxPlayers, cfg.Port, cfg.OnlineMode), Dim: true},
 	})
 
-	ui.Done("cd "+relativeTo(result.Dir), `.\start.bat`)
+	ui.Done("cd "+relativeTo(result.Dir), startCommand())
 }
 
 func relativeTo(dir string) string {

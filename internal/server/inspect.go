@@ -3,7 +3,6 @@ package server
 import (
 	"bufio"
 	"fmt"
-	"io"
 	"net"
 	"os"
 	"path/filepath"
@@ -29,7 +28,7 @@ func Inspect(dir string) (Info, error) {
 		return Info{}, err
 	}
 
-	props, err := readProperties(filepath.Join(abs, propertiesFile))
+	values, err := readProperties(filepath.Join(abs, propertiesFile))
 	if err != nil {
 		return Info{}, err
 	}
@@ -40,10 +39,10 @@ func Inspect(dir string) (Info, error) {
 		LevelName: defaultLevelName,
 		Port:      25565,
 	}
-	if v := strings.TrimSpace(props["level-name"]); v != "" {
+	if v := strings.TrimSpace(values["level-name"]); v != "" {
 		info.LevelName = v
 	}
-	if n, err := strconv.Atoi(strings.TrimSpace(props["server-port"])); err == nil && n > 0 && n <= 65535 {
+	if n, err := strconv.Atoi(strings.TrimSpace(values["server-port"])); err == nil && n > 0 && n <= 65535 {
 		info.Port = n
 	}
 	return info, nil
@@ -63,6 +62,8 @@ func (i Info) Worlds() []string {
 	return out
 }
 
+// readProperties parses the subset of the Java properties format that
+// server.properties uses: key=value lines, # comments, blank lines.
 func readProperties(path string) (map[string]string, error) {
 	file, err := os.Open(path)
 	if os.IsNotExist(err) {
@@ -74,7 +75,7 @@ func readProperties(path string) (map[string]string, error) {
 	}
 	defer file.Close()
 
-	props := map[string]string{}
+	values := map[string]string{}
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
@@ -85,19 +86,63 @@ func readProperties(path string) (map[string]string, error) {
 		if !found {
 			continue
 		}
-		props[strings.TrimSpace(key)] = unescapeProperty(value)
+		values[strings.TrimSpace(key)] = unescapeProperty(value)
 	}
 	if err := scanner.Err(); err != nil {
 		return nil, err
 	}
-	return props, nil
+	return values, nil
 }
 
+// unescapeProperty reverses escapeProperty.
+//
+// Minecraft escapes more than a naive implementation expects — it writes
+// level-type as "minecraft\:normal" and non-ASCII as \uXXXX — so the cases
+// below are the ones a real server.properties actually contains.
 func unescapeProperty(s string) string {
-	s = strings.ReplaceAll(s, `\n`, "\n")
-	return strings.ReplaceAll(s, doubleBackslash, backslash)
+	if !strings.Contains(s, backslash) {
+		return s
+	}
+
+	var b strings.Builder
+	b.Grow(len(s))
+
+	runes := []rune(s)
+	for i := 0; i < len(runes); i++ {
+		if runes[i] != '\\' || i == len(runes)-1 {
+			b.WriteRune(runes[i])
+			continue
+		}
+
+		i++
+		switch runes[i] {
+		case 'n':
+			b.WriteRune('\n')
+		case 't':
+			b.WriteRune('\t')
+		case 'r':
+			b.WriteRune('\r')
+		case 'u':
+			// Malformed escapes are kept as written rather than silently
+			// turned into a replacement character.
+			if i+4 < len(runes) {
+				if code, err := strconv.ParseUint(string(runes[i+1:i+5]), 16, 32); err == nil {
+					b.WriteRune(rune(code))
+					i += 4
+					continue
+				}
+			}
+			b.WriteString(`\u`)
+		default:
+			// Covers \\, \:, \= and \#, all of which stand for themselves.
+			b.WriteRune(runes[i])
+		}
+	}
+	return b.String()
 }
 
+// Spelled out as constants because an inline `\\` literal is easy to mangle,
+// and a mangled one turns the escaping into a silent no-op.
 const (
 	doubleBackslash = `\` + `\`
 	backslash       = `\`
@@ -114,19 +159,6 @@ func (i Info) IsRunning() (bool, string) {
 		return true, fmt.Sprintf("port %d is in use", i.Port)
 	}
 	return false, ""
-}
-
-func sessionLocked(path string) bool {
-	file, err := os.Open(path)
-	if err != nil {
-
-		return false
-	}
-	defer file.Close()
-
-	_, err = file.Read(make([]byte, 1))
-
-	return err != nil && err != io.EOF
 }
 
 func portInUse(port int) bool {

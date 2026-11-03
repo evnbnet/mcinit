@@ -5,8 +5,10 @@ import (
 	"errors"
 	"os"
 	"os/signal"
+	"runtime"
 
 	"github.com/evanb/mcinit/internal/buildinfo"
+	"github.com/evanb/mcinit/internal/server"
 	"github.com/evanb/mcinit/internal/ui"
 	"github.com/spf13/cobra"
 )
@@ -44,7 +46,7 @@ func newRootCmd() *cobra.Command {
 		Short: "Set up a Minecraft server on localhost with one command",
 		Long: "mcinit creates a Minecraft server to play on localhost:\n" +
 			"it picks the software and version, installs Java if missing, downloads\n" +
-			"a verified jar and writes eula.txt, server.properties and start.bat.",
+			"a verified jar and writes eula.txt, server.properties and a start script.",
 		Version:       buildinfo.Version,
 		SilenceErrors: true,
 		SilenceUsage:  true,
@@ -85,4 +87,17 @@ func Execute() int {
 
 	ui.Fail(err, "")
 	return exitUser
+}
+
+// startCommand is how the user launches the server on this platform, as they
+// would type it.
+//
+// The leading "./" is not decoration. PowerShell does not run executables from
+// the current directory without it, in cmd it stops the `start` builtin from
+// shadowing start.bat, and on Unix it is simply required.
+func startCommand() string {
+	if runtime.GOOS == "windows" {
+		return `.\` + server.StartScript()
+	}
+	return "./" + server.StartScript()
 }

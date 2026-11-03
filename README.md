@@ -10,14 +10,14 @@
     <img src="https://img.shields.io/github/v/release/evnbnet/mcinit?label=release&logo=github" alt="Latest release">
   </a>
   <img src="https://img.shields.io/badge/Go-1.27+-00ADD8?logo=go&logoColor=white" alt="Go version">
-  <img src="https://img.shields.io/badge/platform-Windows-0078D6?logo=windows&logoColor=white" alt="Platform">
+  <img src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS-0078D6?logo=windows&logoColor=white" alt="Platform">
   <a href="https://github.com/evnbnet/mcinit/stargazers">
     <img src="https://img.shields.io/github/stars/evnbnet/mcinit?style=social" alt="GitHub stars">
   </a>
 </p>
 
 <p align="center">
-  <strong>A single <code>.exe</code> that sets up a Minecraft server on localhost.</strong><br>
+  <strong>One binary that sets up a Minecraft server on localhost.</strong><br>
   Think <code>npm create</code>, but for servers: interactive by default, with flags for automation.
 </p>
 
@@ -32,17 +32,34 @@
 - 🎮 **Interactive by default** — asks for software, version, RAM and folder.
 - ⚡ **Fast, direct downloads** — Paper via `fill.papermc.io/v3`, Purpur via `api.purpurmc.org/v2`.
 - 🔒 **Always verified** — SHA-256 for Paper, MD5 for Purpur. Nothing half-downloaded reaches the final folder.
-- ☕ **Java handled for you** — detects installed Java and installs Temurin with `winget` (falling back to Adoptium's signed MSI).
+- ☕ **Java handled for you** — detects installed Java and installs Temurin with `winget` or Homebrew, falling back to Adoptium's own package. Never needs a password.
+- 🖥️ **Windows and macOS** — a native `start.bat` or a double-clickable `start.command`, Intel and Apple Silicon.
 - 📦 **Smart backups** — `backup`/`restore` zip worlds, configs and plugins, skipping jars, `libraries/`, caches and logs.
 - 🧠 **Both version schemes** — understands classic `1.21.11` and year-based `26.3`, which can't be compared as plain semver.
 
 ## 📥 Install
 
+**Windows**
+
 ```powershell
 irm https://github.com/evnbnet/mcinit/releases/latest/download/install.ps1 | iex
 ```
 
-It installs into `%LOCALAPPDATA%\mcinit\bin` and adds that to the user `PATH`, with no administrator rights. If another terminal cannot find it, close and reopen that terminal.
+Installs into `%LOCALAPPDATA%\mcinit\bin` and adds that to the user `PATH`.
+
+**macOS**
+
+```sh
+curl -fsSL https://github.com/evnbnet/mcinit/releases/latest/download/install.sh | sh
+```
+
+Installs into `~/.local/bin` and tells you how to add it to your `PATH` if it is not there. Or with Homebrew:
+
+```sh
+brew install evnbnet/tap/mcinit
+```
+
+Neither installer needs administrator rights or a password. If another terminal cannot find `mcinit`, close and reopen that terminal.
 
 ## 🚀 Usage
 
@@ -83,19 +100,28 @@ Backups are zips in `backups/` next to the server, so moving the server folder m
 
 `restore` always archives the state it is about to replace first, so restoring the wrong backup is recoverable: the copy is labelled `_pre-restore` and shows up in the next listing. Neither command will touch a running server — a world copied mid-write can contain half-written region files, and one Minecraft has open cannot be replaced at all. `backup --force` overrides the first case; `restore` has no override.
 
-To start the server, from the folder it created:
+## ▶️ Starting the server
+
+From the folder mcinit created:
 
 ```powershell
-.\start.bat
+.\start.bat        # Windows
 ```
 
-The `.\` is not decoration: PowerShell does not run files from the current directory without it, and in `cmd` it stops the `start` builtin from shadowing the file.
+```sh
+./start.command    # macOS
+```
+
+On macOS you can also just double click `start.command` in Finder, which is the closest thing to double clicking `start.bat` on Windows.
+
+The leading `.\` or `./` is not decoration: PowerShell does not run files from the current directory without it, in `cmd` it stops the `start` builtin from shadowing `start.bat`, and on Unix it is simply required.
 
 ## ⚙️ How it works
 
 - **Paper** through `fill.papermc.io/v3` and **Purpur** through `api.purpurmc.org/v2`, both direct downloads. Spigot is out of scope: BuildTools is slow and fragile.
 - **Always verified**: SHA-256 for Paper, MD5 for Purpur (the only digest it publishes). Nothing half-downloaded ever reaches the final folder.
-- **Java handled for you**: it detects what is installed and, if nothing fits, installs Temurin with `winget`, falling back to Adoptium's signed MSI. The generated `start.bat` embeds the **absolute** path to `java.exe`, because a freshly installed JRE is not on the PATH of an already-open terminal.
+- **Java handled for you**: it detects what is installed and, if nothing fits, installs Temurin — with `winget` on Windows or Homebrew on macOS, falling back to Adoptium's own package. On macOS that fallback is the `.tar.gz` unpacked into `~/Library/Java/JavaVirtualMachines`, so no password is ever needed. The generated start script embeds the **absolute** path to `java`, because a freshly installed runtime is not on the PATH of an already-open terminal.
+- **Per-platform where it matters**: detecting whether a server is already running cannot use the same trick on both systems. On Windows, Java's lock on `session.lock` is mandatory and a read of it fails; on macOS the same lock is advisory and a read succeeds, so there mcinit asks properly with `fcntl`. Getting this wrong would let a backup capture a world mid-write.
 - **Minecraft versions**: it understands both schemes, the classic `1.21.11` and the newer year-based `26.3`, which cannot be compared as plain semver.
 
 | Minecraft | Java |
@@ -111,6 +137,7 @@ The `.\` is not decoration: PowerShell does not run files from the current direc
 go test ./...          # includes checks against the live APIs
 go test -short ./...   # offline only, which is what CI runs
 go build -o mcinit.exe .
+GOOS=darwin GOARCH=arm64 go vet ./...   # check the macOS build from anywhere
 ```
 
 The live API checks exist on purpose: Paper already broke compatibility once by retiring `api.papermc.io/v2`, and these are how you find out before users do.

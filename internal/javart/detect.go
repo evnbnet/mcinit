@@ -6,7 +6,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
-	"sort"
 	"strconv"
 	"strings"
 	"unicode"
@@ -65,15 +64,8 @@ func candidates() []string {
 		add(path)
 	}
 
-	for _, dir := range installRoots() {
-		matches, err := filepath.Glob(filepath.Join(dir, "*", "bin", "java"+exeSuffix))
-		if err != nil {
-			continue
-		}
-		sort.Sort(sort.Reverse(sort.StringSlice(matches)))
-		for _, m := range matches {
-			add(m)
-		}
+	for _, path := range platformJavaPaths() {
+		add(path)
 	}
 	return out
 }
@@ -84,23 +76,6 @@ var exeSuffix = func() string {
 	}
 	return ""
 }()
-
-func installRoots() []string {
-	var roots []string
-	for _, env := range []string{"ProgramFiles", "ProgramFiles(x86)", "LOCALAPPDATA"} {
-		base := os.Getenv(env)
-		if base == "" {
-			continue
-		}
-		roots = append(roots,
-			filepath.Join(base, "Eclipse Adoptium"),
-			filepath.Join(base, "Programs", "Eclipse Adoptium"),
-			filepath.Join(base, "Java"),
-			filepath.Join(base, "Microsoft", "jdk"),
-		)
-	}
-	return roots
-}
 
 func probe(path string) (Runtime, error) {
 

@@ -1,21 +1,9 @@
-# Binaries / build output
-/mcinit
 /mcinit.exe
+/mcinit
 /dist/
-*.exe
 
-# Generated test servers and runtime artifacts
+# Hand-made servers used for testing. They contain a ~50 MB server jar, so
+# they must never reach a commit.
+/test/
 /Testing/
-/backups/
 *.jar
-
-# OS / editor
-.DS_Store
-Thumbs.db
-.vscode/
-.idea/
-
-# Go test cache / coverage (if generated locally)
-*.test
-*.out
-coverage.*

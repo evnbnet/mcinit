@@ -79,6 +79,6 @@ func Create(ctx context.Context, plan Plan) (result Result, err error) {
 	return Result{
 		Dir:       plan.Dir,
 		JarPath:   jar,
-		StartPath: filepath.Join(plan.Dir, "start.bat"),
+		StartPath: filepath.Join(plan.Dir, StartScript()),
 	}, nil
 }

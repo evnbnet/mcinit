@@ -15,7 +15,10 @@ func fakeServer(t *testing.T) server.Info {
 	dir := t.TempDir()
 
 	files := map[string]string{
-		"server.properties":          "level-name=world\nserver-port=25565\nmotd=test\n",
+		// Port 1 is privileged and never listening, so IsRunning's port check
+		// cannot be tripped by whatever else happens to be running on the
+		// machine — including a real Minecraft server on 25565.
+		"server.properties":          "level-name=world\nserver-port=1\nmotd=test\n",
 		"ops.json":                   `[{"name":"evanb"}]`,
 		"whitelist.json":             `[]`,
 		"eula.txt":                   "eula=true\n",
