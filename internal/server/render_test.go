@@ -86,7 +86,10 @@ func TestVectorModuleGatedByJavaVersion(t *testing.T) {
 
 func TestStartBatContents(t *testing.T) {
 	dir := t.TempDir()
-	if err := renderAll(dir, testData(4, 25)); err != nil {
+	// Explicitly windows: renderAll follows runtime.GOOS, which on a Mac
+	// writes start.command and leaves this test looking for a file that was
+	// never created.
+	if err := renderAllFor("windows", dir, testData(4, 25)); err != nil {
 		t.Fatal(err)
 	}
 
@@ -117,10 +120,19 @@ func TestStartBatContents(t *testing.T) {
 }
 
 func TestEulaAndPropertiesContents(t *testing.T) {
-	dir := t.TempDir()
-	if err := renderAll(dir, testData(4, 25)); err != nil {
-		t.Fatal(err)
+	for _, goos := range []string{"windows", "darwin"} {
+		t.Run(goos, func(t *testing.T) {
+			dir := t.TempDir()
+			if err := renderAllFor(goos, dir, testData(4, 25)); err != nil {
+				t.Fatal(err)
+			}
+			assertEulaAndProperties(t, dir)
+		})
 	}
+}
+
+func assertEulaAndProperties(t *testing.T, dir string) {
+	t.Helper()
 
 	eula, err := os.ReadFile(filepath.Join(dir, "eula.txt"))
 	if err != nil {
